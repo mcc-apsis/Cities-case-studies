@@ -1,0 +1,29 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1511345929978.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "3DDD5B26",
+    "lastKnownWriteTime" : 8389754659302220320,
+    "last_content_update" : 1511345929978,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "cacheKey" : "71D14B0A",
+        "caption" : "ctop",
+        "contentUrl" : "grid_resource/gridviewer.html?env=&obj=ctop&cache_key=71D14B0A",
+        "displayedObservations" : 50,
+        "environment" : "",
+        "object" : "ctop",
+        "preview" : 0,
+        "totalObservations" : 50,
+        "variables" : 2
+    },
+    "relative_order" : 2,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_dataframe"
+}
