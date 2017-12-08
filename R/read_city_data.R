@@ -27,3 +27,9 @@ ggplot(cdat,aes(x=reorder(city,-co2/pop),y=co2/pop)) +
   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
 
 save(cdat,file="Data/city_data.RData")
+
+##### how about the pnas data
+cpnas <- read.xlsx(file="Data/city PNAS data.xlsx",sheetName="gea_data",encoding="UTF-8") %>%
+  select(cities,total_final_consumption_per_capita,country,population,gdp_per_cap,emission_intensity_2009)
+cpnas <- cpnas[!is.na(cpnas$cities),]
+save(cpnas,file="Data/city_data_pnas.RData")
