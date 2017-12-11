@@ -61,9 +61,9 @@ plot(st_bt_pop)
 plot(st_bt_gdp)
 plot(st_bt_co2)
 
-ggsave(file = "Plots/cities_studies_pop_bt.pdf",plot = st_bt_pop)
-ggsave(file = "Plots/cities_studies_gdp_bt.pdf",plot = st_bt_gdp)
-ggsave(file = "Plots/cities_studies_co2_bt.pdf",plot = st_bt_co2)
+ggsave(file = "Plots/cities_studies__bt_pop.pdf",plot = st_bt_pop)
+ggsave(file = "Plots/cities_studies_bt_gdp.pdf",plot = st_bt_gdp)
+ggsave(file = "Plots/cities_studies_bt_co2.pdf",plot = st_bt_co2)
 
 ###################
 
@@ -124,6 +124,6 @@ plot(st_gea_pop)
 plot(st_gea_gdppc)
 plot(st_gea_co2int)
 
-ggsave(file = "Plots/cities_studies_pop_gea.pdf",plot = st_gea_pop)
-ggsave(file = "Plots/cities_studies_gdppc_gea.pdf",plot = st_gea_gdppc)
-ggsave(file = "Plots/cities_studies_co2int_gea.pdf",plot = st_gea_co2int)
+ggsave(file = "Plots/cities_studies_gea_pop.pdf",plot = st_gea_pop)
+ggsave(file = "Plots/cities_studies_gea_gdppc.pdf",plot = st_gea_gdppc)
+ggsave(file = "Plots/cities_studies_gea_co2int.pdf",plot = st_gea_co2int)
