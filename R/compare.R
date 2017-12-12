@@ -12,11 +12,11 @@ load(file = "Data/city_data.RData")
 #attempt a bind
 ctop <- left_join(ctop,cdat, by = c("vars" = "city")) %>%
   select(vars,n,pop,gdp,co2) %>%
-  filter(n>9) %>%
   mutate(n=scale(n,center=min(n),scale=max(n)-min(n)))
 
 st_bt_pop <-
   ctop %>%
+  filter(!is.na(pop)) %>%
   mutate(right="articles",left="pop") %>%
   ggplot(.) +
   geom_bar(aes(x=reorder(vars,-n),y=pop,fill=left),stat="identity") +
@@ -31,6 +31,7 @@ st_bt_pop <-
 
 st_bt_gdp <-
   ctop %>%
+  filter(!is.na(gdp)) %>%
   mutate(right="articles",left="gdp") %>%
   ggplot(.) +
   geom_bar(aes(x=reorder(vars,-n),y=gdp,fill=left),stat="identity") +
@@ -45,6 +46,7 @@ st_bt_gdp <-
 
 st_bt_co2 <-
   ctop %>%
+  filter(!is.na(co2)) %>%
   mutate(right="articles",left="co2") %>%
   ggplot(.) +
   geom_bar(aes(x=reorder(vars,-n),y=co2,fill=left),stat="identity") +
@@ -74,13 +76,13 @@ load(file = "Data/city_data_pnas.RData")
 #attempt a bind
 ctop <- left_join(ctop,cpnas, by = c("vars" = "cities")) %>%
   select(vars,n,pop=population,gdp_pc=gdp_per_cap,co2_int=emission_intensity_2009)%>%
-  filter(n>9) %>%
   mutate(n=scale(n,center=min(n),scale=max(n)-min(n))) %>%
   mutate(right="articles",left="pop")
 
 # population
 st_gea_pop <-
   ctop %>%
+  filter(!is.na(pop)) %>%
   ggplot(.) +
   geom_bar(aes(x=reorder(vars,-n),y=pop,fill=left),stat="identity") +
   geom_line(aes(x=reorder(vars,-n),y=n*max(pop,na.rm=TRUE),color=right),stat="identity",group=1) +
@@ -88,13 +90,14 @@ st_gea_pop <-
   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5),
         legend.position=c(1,1),legend.justification=c(1,1),legend.title=element_blank()) +
   scale_fill_manual(values=c(pop="#4292c6"),labels="Population") +
-  scale_color_manual(values=c(articles="#e6550d"),labels="Articles (normalised 10-147)")  +
+  scale_color_manual(values=c(articles="#e6550d"),labels="Articles")  +
   xlab("Cities, ordered by article count")   +
   ylab("Total Population (GEA data)")
 
 # gdp_pc
 st_gea_gdppc <-
   ctop %>%
+  filter(!is.na(gdp_pc)) %>%
   ggplot(.) +
   geom_bar(aes(x=reorder(vars,-n),y=gdp_pc,fill=left),stat="identity") +
   geom_line(aes(x=reorder(vars,-n),y=n*max(gdp_pc,na.rm=TRUE),color=right),stat="identity",group=1) +
@@ -109,6 +112,7 @@ st_gea_gdppc <-
 # co2_int
 st_gea_co2int <-
   ctop %>%
+  filter(!is.na(co2_int)) %>%
   ggplot(.) +
   geom_bar(aes(x=reorder(vars,-n),y=co2_int,fill=left),stat="identity") +
   geom_line(aes(x=reorder(vars,-n),y=n*max(co2_int,na.rm=TRUE),color=right),stat="identity",group=1) +
