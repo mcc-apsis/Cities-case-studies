@@ -152,7 +152,7 @@ ctop <- left_join(ctop,cseto, by = c("vars" = "cities")) %>%
 st_seto_pop <-
   ctop %>%
   filter(!is.na(pop)) %>%
-  head(100) %>%
+#  head(100) %>%
   mutate(pop=pop/1e6) %>%
   ggplot(.) +
   geom_bar(aes(x=reorder(vars,-n),y=pop,fill=left),stat="identity") +
@@ -169,7 +169,7 @@ st_seto_pop <-
 st_seto_co2 <-
   ctop %>%
   filter(!is.na(co2)) %>%
-  head(100) %>%
+#  head(100) %>%
   mutate(co2=co2/1e6) %>%
   ggplot(.) +
   geom_bar(aes(x=reorder(vars,-n),y=co2,fill=left),stat="identity") +
@@ -186,7 +186,7 @@ st_seto_co2 <-
 st_seto_co2pc <-
   ctop %>%
   filter(!is.na(co2pc)) %>%
-  head(100) %>%
+  #head(100) %>%
   #mutate(co2=co2/1e6) %>%
   ggplot(.) +
   geom_bar(aes(x=reorder(vars,-n),y=co2pc,fill=left),stat="identity") +
@@ -203,8 +203,12 @@ plot(st_seto_pop)
 plot(st_seto_co2)
 plot(st_seto_co2pc)
 
-ggsave(file = "Plots/cities_studies_seto_pop_small.pdf",plot = st_seto_pop)
-ggsave(file = "Plots/cities_studies_seto_co2_small.pdf",plot = st_seto_co2)
-ggsave(file = "Plots/cities_studies_seto_co2pc_small.pdf",plot = st_seto_co2pc)
+ggsave(file = "Plots/cities_studies_seto_pop.pdf",plot = st_seto_pop)
+ggsave(file = "Plots/cities_studies_seto_co2.pdf",plot = st_seto_co2)
+ggsave(file = "Plots/cities_studies_seto_co2pc.pdf",plot = st_seto_co2pc)
+
+#ggsave(file = "Plots/cities_studies_seto_pop_small.pdf",plot = st_seto_pop)
+#ggsave(file = "Plots/cities_studies_seto_co2_small.pdf",plot = st_seto_co2)
+#ggsave(file = "Plots/cities_studies_seto_co2pc_small.pdf",plot = st_seto_co2pc)
 
 ############ seto data small ############ 
