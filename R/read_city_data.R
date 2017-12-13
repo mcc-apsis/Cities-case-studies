@@ -26,10 +26,18 @@ ggplot(cdat,aes(x=reorder(city,-co2/pop),y=co2/pop)) +
   geom_bar(stat="identity") +
   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
 
-save(cdat,file="Data/city_data.RData")
+save(cdat,file="Data/city_data_spatial.RData")
 
 ##### how about the pnas data
 cpnas <- read.xlsx(file="Data/city PNAS data.xlsx",sheetName="gea_data",encoding="UTF-8") %>%
   select(cities,total_final_consumption_per_capita,country,population,gdp_per_cap,emission_intensity_2009)
 cpnas <- cpnas[!is.na(cpnas$cities),]
 save(cpnas,file="Data/city_data_pnas.RData")
+
+##### K Seto data
+cseto <- read.xlsx(file="Data/SI.2 - Moran Spatial Footprints Data Appendix.xlsx",sheetName = "S.2.3a - Top 500 Cities",
+                   encoding="UTF-8") %>%
+  rename(cities="Urban.Cluster",co2pc="Footprint.cap..t.CO2.",co2="Footprint..t.CO2.",pop="Population") %>%
+  select(cities,Country,co2pc,co2,pop)
+
+save(cseto,file="Data/city_data_seto.RData")

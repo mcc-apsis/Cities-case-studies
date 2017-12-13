@@ -6,6 +6,10 @@ library(magrittr)
 library(reshape2)
 library(svglite)
 
+
+############ spatial data ############ 
+
+
 load(file = "Data/city_studies.RData")
 load(file = "Data/city_data.RData")
 
@@ -67,7 +71,7 @@ ggsave(file = "Plots/cities_studies__bt_pop.pdf",plot = st_bt_pop)
 ggsave(file = "Plots/cities_studies_bt_gdp.pdf",plot = st_bt_gdp)
 ggsave(file = "Plots/cities_studies_bt_co2.pdf",plot = st_bt_co2)
 
-###################
+############ pnas data ############ 
 
 rm(cdat,ctop)
 load(file = "Data/city_studies.RData")
@@ -131,3 +135,76 @@ plot(st_gea_co2int)
 ggsave(file = "Plots/cities_studies_gea_pop.pdf",plot = st_gea_pop)
 ggsave(file = "Plots/cities_studies_gea_gdppc.pdf",plot = st_gea_gdppc)
 ggsave(file = "Plots/cities_studies_gea_co2int.pdf",plot = st_gea_co2int)
+
+############ seto data ############ 
+
+rm(cdat,ctop)
+load(file = "Data/city_studies.RData")
+load(file = "Data/city_data_seto.RData")
+
+#attempt a bind
+ctop <- left_join(ctop,cseto, by = c("vars" = "cities")) %>%
+  mutate(n=scale(n,center=min(n),scale=max(n)-min(n))) %>%
+  mutate(right="articles",left="pop")
+
+
+# population
+st_seto_pop <-
+  ctop %>%
+  filter(!is.na(pop)) %>%
+  head(100) %>%
+  mutate(pop=pop/1e6) %>%
+  ggplot(.) +
+  geom_bar(aes(x=reorder(vars,-n),y=pop,fill=left),stat="identity") +
+  geom_line(aes(x=reorder(vars,-n),y=n*max(pop,na.rm=TRUE),color=right),stat="identity",group=1) +
+  scale_y_continuous(sec.axis = sec_axis(~./max(ctop$pop,na.rm=TRUE))) +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5),
+        legend.position=c(1,1),legend.justification=c(1,1),legend.title=element_blank()) +
+  scale_fill_manual(values=c(pop="#4292c6"),labels="Population") +
+  scale_color_manual(values=c(articles="#e6550d"),labels="Articles")  +
+  xlab("Cities, ordered by article count")   +
+  ylab("Total Population, millions (Seto data)")
+
+# emissions
+st_seto_co2 <-
+  ctop %>%
+  filter(!is.na(co2)) %>%
+  head(100) %>%
+  mutate(co2=co2/1e6) %>%
+  ggplot(.) +
+  geom_bar(aes(x=reorder(vars,-n),y=co2,fill=left),stat="identity") +
+  geom_line(aes(x=reorder(vars,-n),y=n*max(co2,na.rm=TRUE),color=right),stat="identity",group=1) +
+  scale_y_continuous(sec.axis = sec_axis(~./max(ctop$co2,na.rm=TRUE))) +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5),
+        legend.position=c(1,1),legend.justification=c(1,1),legend.title=element_blank()) +
+  scale_fill_manual(values=c(pop="#4292c6"),labels="Population") +
+  scale_color_manual(values=c(articles="#e6550d"),labels="Articles")  +
+  xlab("Cities, ordered by article count")   +
+  ylab("Total emissions, MtCO2 (Seto data)")
+
+# emissions pc
+st_seto_co2pc <-
+  ctop %>%
+  filter(!is.na(co2pc)) %>%
+  head(100) %>%
+  #mutate(co2=co2/1e6) %>%
+  ggplot(.) +
+  geom_bar(aes(x=reorder(vars,-n),y=co2pc,fill=left),stat="identity") +
+  geom_line(aes(x=reorder(vars,-n),y=n*max(co2pc,na.rm=TRUE),color=right),stat="identity",group=1,size=1) +
+  scale_y_continuous(sec.axis = sec_axis(~./max(ctop$co2pc,na.rm=TRUE))) +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5),
+        legend.position=c(1,1),legend.justification=c(1,1),legend.title=element_blank()) +
+  scale_fill_manual(values=c(pop="#4292c6"),labels="Population") +
+  scale_color_manual(values=c(articles="#e6550d"),labels="Articles")  +
+  xlab("Cities, ordered by article count")   +
+  ylab("Emissions per capita, tCO2 (Seto data)")
+
+plot(st_seto_pop)
+plot(st_seto_co2)
+plot(st_seto_co2pc)
+
+ggsave(file = "Plots/cities_studies_seto_pop_small.pdf",plot = st_seto_pop)
+ggsave(file = "Plots/cities_studies_seto_co2_small.pdf",plot = st_seto_co2)
+ggsave(file = "Plots/cities_studies_seto_co2pc_small.pdf",plot = st_seto_co2pc)
+
+############ seto data small ############ 
