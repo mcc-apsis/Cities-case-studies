@@ -1,0 +1,104 @@
+---
+title: "City case studies"
+output: 
+  html_document: 
+    df_print: paged
+    fig_width: 5
+    fig_height: 3.5
+---
+
+<hr>
+## The size bias of city case studies 
+<br>
+
+**Hypothesis**: There are more studies for cities of a larger size.
+
+**Method**: Group cities by population size (>10m, 5-10m, 1-5m, <1m), sum and average the studies for each group.
+
+**Data**: Database of urban papers, population data for cities from GEA.
+
+**Results**: Hypothesis is correct for average articles per city. *Note that the majority of cities studies in the database are unallocated (2/3) due to missing population data.* These unallocated cities average very low numbers of studies, but do include some very large ones, e.g. New York City, Stockholm, Santiago, Chicago, Washington D.C., Delhi.
+<br>
+
+
+```{r include=FALSE}
+
+rm(list = ls())
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(magrittr)
+library(reshape2)
+library(svglite)
+
+rm(ctop)
+load(file = "Data/city_studies.RData")
+load(file = "Data/city_data_pnas.RData")
+
+ctop <- left_join(ctop,cpnas, by = c("vars" = "cities"))
+ctop <- ctop %>% mutate(population=population*1000)
+ctop <- ctop %>%
+  group_by(population_category = cut(ctop$population,breaks = c(100e6,10e6,5e6,1e6,1e5),include.lowest=TRUE)) %>%
+  summarise(no_cities=n(),sum_articles=sum(n),mean_articles=mean(n),city_names=paste(vars, collapse=", ")) %>% 
+  ungroup() %>% arrange(desc(population_category))
+
+```
+```{r echo=FALSE,warning=FALSE, rows.print=4}
+
+ctop %>%
+  ggplot(.) +
+  geom_bar(aes(x=reorder(population_category,-mean_articles),y=mean_articles),stat="identity") +
+  scale_x_discrete(labels = c(">10m","5-10m","1-5m","<1m","NA")) +
+  xlab("Cities, grouped by population") +
+  ylab("Average articles")
+
+library(knitr)
+library(kableExtra)
+kable(ctop, "html", caption="Urban studies versus population") %>%
+  kable_styling() %>%
+  scroll_box(height = "300px")
+```
+
+
+<br>
+<hr>
+## The wealth bias of city case studies 
+<br>
+
+**Hypothesis**: There are more studies for wealthier cities.
+
+**Method**: Group cities by income classification (World Bank thresholds:$12,235, $3,956, $1,006), sum and average the studies for each group.
+
+**Data**: Database of urban papers, GDPpc data for cities from GEA.
+
+**Results**: Hypothesis is false for average articles per city income bracket. However, there are 3 times **more** total studies in high income cities, and with a greater diversity of cities (although this may be related to greater GDP data avaialability for these cities - *note again the high number of unallocated city studies*). Beijing and Shanghai account for the majority of studies in the middle income bracket (211 out of 286)
+<br>
+
+
+```{r include=FALSE}
+
+rm(ctop)
+load(file = "Data/city_studies.RData")
+load(file = "Data/city_data_pnas.RData")
+
+ctop <- left_join(ctop,cpnas, by = c("vars" = "cities"))
+ctop <- ctop %>%
+  group_by(gdp_pc = cut(ctop$gdp_per_cap,breaks = c(1005,3955,12235,1e6),include.lowest=TRUE)) %>% 
+  summarise(no_cities=n(),sum_articles=sum(n),mean_articles=mean(n),city_names=paste(vars, collapse=", ")) %>% 
+  ungroup() %>% arrange(desc(gdp_pc))
+```
+```{r echo=FALSE,warning=FALSE, rows.print=4}
+
+ctop %>%
+  ggplot(.) +
+  geom_bar(aes(x=reorder(gdp_pc,-no_cities),y=mean_articles),stat="identity") +
+  scale_x_discrete(labels = c(">$12,235","$3,956-$12,235","$1,006-$3,955","NA")) +
+  xlab("Cities, grouped by GDP per capita") +
+  ylab("Average articles")
+
+kable(ctop, "html", caption="Urban studies versus GDP") %>%
+  kable_styling() %>%
+  scroll_box(height = "300px")
+```
+
+<br><br>
