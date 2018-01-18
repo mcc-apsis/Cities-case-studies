@@ -47,7 +47,7 @@ ctop <- ctop %>%
 
 ctop %>%
   ggplot(.) +
-  geom_bar(aes(x=reorder(population_category,-mean_articles),y=mean_articles),stat="identity") +
+  geom_bar(aes(x=reorder(population_category,-mean_articles),y=mean_articles),stat="identity",fill="#2b8cbe") +
   scale_x_discrete(labels = c(">10m","5-10m","1-5m","<1m","NA")) +
   xlab("Cities, grouped by population") +
   ylab("Average articles")
@@ -91,7 +91,7 @@ ctop <- ctop %>%
 
 ctop %>%
   ggplot(.) +
-  geom_bar(aes(x=reorder(gdp_pc,-no_cities),y=mean_articles),stat="identity") +
+  geom_bar(aes(x=reorder(gdp_pc,-no_cities),y=mean_articles),stat="identity",fill="#2b8cbe") +
   scale_x_discrete(labels = c(">$12,235","$3,956-$12,235","$1,006-$3,955","NA")) +
   xlab("Cities, grouped by GDP per capita") +
   ylab("Average articles")
