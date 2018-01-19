@@ -331,11 +331,20 @@ width: 100%
     width: 80%;
 }
 
-.city {
+.city_data {
 	-opacity: .65;
 	stroke: black;
 	stroke-width: .25px;
+    fill: #a8ddb5ff;
 }
+
+.city_nodata {
+    -opacity: .65;
+    stroke: black;
+    stroke-width: .25px;
+    fill: #de2d269e;
+}
+
 
 div.tooltip {
   position: absolute;

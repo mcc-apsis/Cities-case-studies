@@ -128,10 +128,9 @@ d3.json("world-50m.json", function(error, world) {
       .data(cities).enter()
       .append("circle")
       .attr("transform", function(d) { return "translate(" + path.centroid(d) + ")"; })
-      .attr("class","city")
-      .attr("fill",function(d) {
-        if (isNaN(d.properties.SETO_co2pc) == true) {return "#de2d269e"}
-          else {return "#a8ddb5ff"}
+      .attr("class",function(d) {
+        if (isNaN(d.properties.SETO_co2pc) == true) {return "city_nodata"}
+          else {return "city_data"}
       })
       .on("mouseover", function(d) {
         div.transition()
