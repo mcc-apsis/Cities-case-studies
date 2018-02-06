@@ -5,13 +5,16 @@ library(tidyr)
 library(magrittr)
 library(reshape2)
 library(svglite)
+library(xlsx)
 
 ctab <-
   read.csv("Data/cities_places_topics.csv",sep=",",header=TRUE, encoding="UTF-8") %>%
   subset(select=-c(X)) %>%
   select(cities,year,title,abstract,doi,authors,everything())
 
-#duplicate rows where there is more than one city
+
+############### duplicate rows where there is more than one city ###############
+
 for (i in 1:length(ctab[,1])) {
   temp <- as.character(ctab$cities[i])
   if(grepl(';',temp)=="TRUE") {
@@ -26,45 +29,66 @@ for (i in 1:length(ctab[,1])) {
 ctab <- ctab[!(grepl(';',ctab$cities)),] %>%
   mutate(cities=trimws(cities))
 
-#constrain to at least 10 studies per city
+
+############### Extract country names ############### 
+
+# Get a list of country names and ISOs
+isos <- read.xlsx(file="C:\\Users\\lamw\\Google Drive\\Work\\Code\\MATLAB\\Handy code\\ISOcodes.xls",
+                  sheetName="3 letter codes",colIndex=7:8,startRow=3,header=FALSE,encoding="UTF-8") %>%
+  rename(countries=X7,isos=X8) %>%
+  filter(!countries %in% c("US","World","Jersey"),!isos %in% c("ZZZZ","ZZZA"))
+
+ctab$country <-NA
+for (i in 1:length(ctab$abstract)) {
+  for (j in 1:length(isos$countries)) {
+    if (grepl(isos$countries[j],ctab$abstract[i],ignore.case=TRUE)==TRUE)
+      ctab$country[i] <- paste0(ctab$country[i],", ",isos$isos[j])
+  }
+}
+ctab$country <- gsub("NA,","",ctab$country)
+ctab <- ctab %>%
+  select("cities","country",everything())
+
+
+############### Summary figures ############### 
+
+# Rank cities by no. papers
 ctop <- ctab %>%
-  count(vars=cities) %>%
+  count(vars=cities,country) %>%
   arrange(desc(n))
 
-#plot studies by city
+# Plot top cities in descending order
 g_count <- ctop %>%
   filter(n>5) %>%
   ggplot(.,aes(x=reorder(vars,-n),y=n)) +
   geom_bar(stat="identity") +
   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
 
-
-#sum correlations
-ctab <- ctab[,-c(2:7)]
-ctab <- tidyr::gather(ctab,topic,value,-cities)
-for (i in 1:length(ctab[,1])) {
-  if (ctab$value[i]>0.005) {
-    ctab$value[i] <- 1
+# Set a topic threshold and count papers on each topic 
+csum <- tidyr::gather(ctab,topic,value,Active.travel:e.Vehicles)
+for (i in 1:length(csum[,1])) {
+  if (csum$value[i]>0.005) {
+    csum$value[i] <- 1
   }
   else {
-    ctab$value[i] <- 0
+    csum$value[i] <- 0
   }
 }
-ctab <- ctab %>%
+
+csum <- csum %>%
   filter(value>0) %>%
   group_by(cities,topic) %>% 
   summarise_each(funs(sum),value)
 
-z<-ctab %>% 
+z<-csum %>% 
   group_by(cities) %>% 
   summarise_each(funs(sum),value) %>% 
   arrange(desc(value))
 
 z <- rename(z,total=value)
+csum$city_ordered <- factor(csum$cities,levels=z$cities)
 
-ctab$city_ordered <- factor(ctab$cities,levels=z$cities)
-
-g_heat <- ctab %>% 
+g_heat <- csum %>% 
   left_join(ctop,by=c("cities" = "vars")) %>%
   filter(n>9) %>%
   group_by(cities,topic) %>% 
@@ -78,5 +102,5 @@ g_heat <- ctab %>%
 ggsave(file = "Plots/City_studies.pdf",plot = g_count)
 ggsave(file = "Plots/City_topics.pdf",plot = g_heat)
 
-save(ctop,file="Data/city_studies.RData")
-save(ctab,file="Data/city_topics.RData")
+save(ctab,ctop,file="Data/city_studies.RData")
+

@@ -30,17 +30,28 @@ library(tidyr)
 library(magrittr)
 library(reshape2)
 library(svglite)
+library(fuzzyjoin)
 
-rm(ctop)
 load(file = "Data/city_studies.RData")
-load(file = "Data/city_data_pnas.RData")
+load(file = "Data/city_data.RData")
 
-ctop <- left_join(ctop,cpnas, by = c("vars" = "cities"))
-ctop <- ctop %>% mutate(population=population*1000)
+# ctop <- left_join(ctop,data_GEA, by = c("vars" = "cities"))
+# ctop <- ctop %>% mutate(population=population*1000)
+# ctop <- ctop %>%
+#   group_by(population_category = cut(ctop$population,breaks = c(100e6,10e6,5e6,1e6,1e5),include.lowest=TRUE)) %>%
+#   summarise(no_cities=n(),sum_articles=sum(n),mean_articles=mean(n),city_names=paste(vars, collapse=", ")) %>%
+#   ungroup() %>% arrange(desc(population_category))
+
+ctop <- left_join(ctop,data_UN, by = c("vars" = "City")) %>%
+  group_by(vars) %>%
+  filter(Value==max(Value) | is.na(Value)==TRUE)
+
+ctop$population_category <- cut(ctop$Value,breaks = c(100e6,10e6,5e6,1e6,1e5),include.lowest=TRUE)
 ctop <- ctop %>%
-  group_by(population_category = cut(ctop$population,breaks = c(100e6,10e6,5e6,1e6,1e5),include.lowest=TRUE)) %>%
+  group_by(population_category) %>%
   summarise(no_cities=n(),sum_articles=sum(n),mean_articles=mean(n),city_names=paste(vars, collapse=", ")) %>% 
   ungroup() %>% arrange(desc(population_category))
+
 
 ```
 ```{r echo=FALSE,warning=FALSE, rows.print=4}
@@ -51,6 +62,14 @@ ctop %>%
   scale_x_discrete(labels = c(">10m","5-10m","1-5m","<1m","NA")) +
   xlab("Cities, grouped by population") +
   ylab("Average articles")
+
+ctop %>%
+  ggplot(.) +
+  geom_bar(aes(x=reorder(population_category,-sum_articles),y=sum_articles),stat="identity",fill="#2b8cbe") +
+  scale_x_discrete(labels = c(">10m","5-10m","1-5m","<1m","NA")) +
+  xlab("Cities, grouped by population") +
+  ylab("Total articles")
+
 
 library(knitr)
 library(kableExtra)
@@ -79,9 +98,9 @@ kable(ctop, "html", caption="Urban studies versus population") %>%
 
 rm(ctop)
 load(file = "Data/city_studies.RData")
-load(file = "Data/city_data_pnas.RData")
+load(file = "Data/city_data.RData")
 
-ctop <- left_join(ctop,cpnas, by = c("vars" = "cities"))
+ctop <- left_join(ctop,data_GEA, by = c("vars" = "cities"))
 ctop <- ctop %>%
   group_by(gdp_pc = cut(ctop$gdp_per_cap,breaks = c(1005,3955,12235,1e6),include.lowest=TRUE)) %>% 
   summarise(no_cities=n(),sum_articles=sum(n),mean_articles=mean(n),city_names=paste(vars, collapse=", ")) %>% 

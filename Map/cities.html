@@ -129,7 +129,7 @@ d3.json("world-50m.json", function(error, world) {
       .append("circle")
       .attr("transform", function(d) { return "translate(" + path.centroid(d) + ")"; })
       .attr("class",function(d) {
-        if (isNaN(d.properties.SETO_co2pc) == true) {return "city_nodata"}
+        if (isNaN(d.properties.GEA_pop) == true) {return "city_nodata"}
           else {return "city_data"}
       })
       .on("mouseover", function(d) {
