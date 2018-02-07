@@ -15,11 +15,9 @@ output:
 
 **Method**: Group cities by population size (>10m, 5-10m, 1-5m, <1m), sum and average the studies for each group.
 
-**Data**: Database of urban papers, population data for cities from GEA.
+**Data**: Database of urban papers, population data for cities from the UN.
 
-**Results**: Hypothesis is correct for average articles per city. *Note that the majority of cities studies in the database are unallocated (2/3) due to missing population data.* These unallocated cities average very low numbers of studies, but do include some very large ones, e.g. New York City, Stockholm, Santiago, Chicago, Washington D.C., Delhi.
-<br>
-
+**Results**: Hypothesis is correct for average and total articles per population bracket.
 
 ```{r include=FALSE}
 
@@ -35,21 +33,14 @@ library(fuzzyjoin)
 load(file = "Data/city_studies.RData")
 load(file = "Data/city_data.RData")
 
-# ctop <- left_join(ctop,data_GEA, by = c("vars" = "cities"))
-# ctop <- ctop %>% mutate(population=population*1000)
-# ctop <- ctop %>%
-#   group_by(population_category = cut(ctop$population,breaks = c(100e6,10e6,5e6,1e6,1e5),include.lowest=TRUE)) %>%
-#   summarise(no_cities=n(),sum_articles=sum(n),mean_articles=mean(n),city_names=paste(vars, collapse=", ")) %>%
-#   ungroup() %>% arrange(desc(population_category))
-
 ctop <- left_join(ctop,data_UN, by = c("vars" = "City")) %>%
   group_by(vars) %>%
   filter(Value==max(Value) | is.na(Value)==TRUE)
 
-ctop$population_category <- cut(ctop$Value,breaks = c(100e6,10e6,5e6,1e6,1e5),include.lowest=TRUE)
+ctop$population_category <- cut(ctop$Value,breaks = c(100e6,10e6,5e6,1e6,1e5),dig.lab=10,include.lowest=TRUE)
 ctop <- ctop %>%
   group_by(population_category) %>%
-  summarise(no_cities=n(),sum_articles=sum(n),mean_articles=mean(n),city_names=paste(vars, collapse=", ")) %>% 
+  summarise(no_cities=n(),mean_pop=mean(Value),sum_articles=sum(n),mean_articles=mean(n),city_names=paste(vars, collapse=", ")) %>% 
   ungroup() %>% arrange(desc(population_category))
 
 
@@ -73,7 +64,7 @@ ctop %>%
 
 library(knitr)
 library(kableExtra)
-kable(ctop, "html", caption="Urban studies versus population") %>%
+kable(ctop, "html", caption="Urban studies versus population",digits=1) %>%
   kable_styling() %>%
   scroll_box(height = "300px")
 ```
@@ -86,36 +77,78 @@ kable(ctop, "html", caption="Urban studies versus population") %>%
 
 **Hypothesis**: There are more studies for wealthier cities.
 
-**Method**: Group cities by income classification (World Bank thresholds:$12,235, $3,956, $1,006), sum and average the studies for each group.
+**Method**: Group cities by income classification (quantiles of global urban income), sum and average the studies for each group.
 
-**Data**: Database of urban papers, GDPpc data for cities from GEA.
+**Data**: Database of urban papers, income data from GEA and OECD.
 
-**Results**: Hypothesis is false for average articles per city income bracket. However, there are 3 times **more** total studies in high income cities, and with a greater diversity of cities (although this may be related to greater GDP data avaialability for these cities - *note again the high number of unallocated city studies*). Beijing and Shanghai account for the majority of studies in the middle income bracket (211 out of 286)
+**Results**: Hypothesis is correct, but with an uptick of studies in the lowest income bracket. These are mainly accounted for by Beijing and Shanghai.
 <br>
 
 
 ```{r include=FALSE}
 
-rm(ctop)
+rm(list = ls())
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(magrittr)
+library(reshape2)
+library(svglite)
+library(fuzzyjoin)
+
 load(file = "Data/city_studies.RData")
 load(file = "Data/city_data.RData")
 
-ctop <- left_join(ctop,data_GEA, by = c("vars" = "cities"))
+######## merge GDP datasets (not normalised! preference for GEA data) ######## 
+
+income_data <- data_GEA %>%
+  rename(GEA_income="gdp_per_cap") %>%
+  select(cities,GEA_income)
+
+income_data <- full_join(income_data,data_OECD) %>%
+  rename(OECD_income="value") %>%
+  select(-c(year,unit))
+
+#ctop %>%
+ # ggplot(.) +
+  #geom_point(aes(x=GEA_income,y=OECD_income))
+
+income_data <- income_data %>%
+  gather(gdp,value,GEA_income,OECD_income) %>%
+  group_by(cities) %>%
+  filter(is.na(value)==FALSE) %>%
+  filter(row_number()==1)
+
+
+######## join 
+
+ctop <- left_join(ctop,income_data, by = c("vars" = "cities")) 
+
 ctop <- ctop %>%
-  group_by(gdp_pc = cut(ctop$gdp_per_cap,breaks = c(1005,3955,12235,1e6),include.lowest=TRUE)) %>% 
-  summarise(no_cities=n(),sum_articles=sum(n),mean_articles=mean(n),city_names=paste(vars, collapse=", ")) %>% 
+  group_by(gdp_pc = cut(ctop$value,breaks = c(round(quantile(income_data$value),-3)),include.lowest=TRUE,dig.lab=10)) %>% 
+  summarise(no_cities=n(),mean_gdp=mean(value),sum_articles=sum(n),mean_articles=mean(n),city_names=paste(vars, collapse=", ")) %>% 
   ungroup() %>% arrange(desc(gdp_pc))
+
+
 ```
 ```{r echo=FALSE,warning=FALSE, rows.print=4}
 
 ctop %>%
   ggplot(.) +
-  geom_bar(aes(x=reorder(gdp_pc,-no_cities),y=mean_articles),stat="identity",fill="#2b8cbe") +
-  scale_x_discrete(labels = c(">$12,235","$3,956-$12,235","$1,006-$3,955","NA")) +
+  geom_bar(aes(x=reorder(gdp_pc,-mean_gdp),y=mean_articles),stat="identity",fill="#2b8cbe") +
+  #scale_x_discrete(labels = c(">$20k","$12k-$20k","$5k-$12k","NA")) +
   xlab("Cities, grouped by GDP per capita") +
   ylab("Average articles")
 
-kable(ctop, "html", caption="Urban studies versus GDP") %>%
+ctop %>%
+  ggplot(.) +
+  geom_bar(aes(x=reorder(gdp_pc,-mean_gdp),y=sum_articles),stat="identity",fill="#2b8cbe") +
+  #scale_x_discrete(labels = c(">$20k","$12k-$20k","$5k-$12k","NA")) +
+  xlab("Cities, grouped by GDP per capita") +
+  ylab("Total articles")
+
+
+kable(ctop, "html", caption="Urban studies versus GDP",digits=1) %>%
   kable_styling() %>%
   scroll_box(height = "300px")
 ```

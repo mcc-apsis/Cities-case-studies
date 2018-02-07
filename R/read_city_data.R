@@ -50,13 +50,18 @@ data_UN <- data_UN %>%
   filter(row_number()==n())
 
 # Minor edits to city names
-data_UN$City <- gsub("New York","New York City", data_UN$City)
 data_UN$City <- gsub("Washington","Washington, D.C.", data_UN$City)
 data_UN$City <- gsub("Mexico, Ciudad De","Mexico City", data_UN$City)
 
+############### OECD Income data ############### 
+
+data_OECD <- read.xlsx('Data/OECD city income.xlsx',encoding="UTF-8",sheetName = "Sheet1") %>%
+  rename(cities="Metropolitan.areas",year="Year",unit="Unit",value="Value") %>%
+  select(cities,year,unit,value)
+
 ############### save ###############
 
-save(data_GEA,data_Seto,data_UN,file="Data/city_data.RData")
+save(data_GEA,data_Seto,data_UN,data_OECD,file="Data/city_data.RData")
 
 ############### Funny spatial data ############### 
 

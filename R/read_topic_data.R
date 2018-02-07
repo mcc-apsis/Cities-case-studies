@@ -49,12 +49,13 @@ ctab$country <- gsub("NA,","",ctab$country)
 ctab <- ctab %>%
   select("cities","country",everything())
 
+ctab$cities <- gsub("New York City","New York",ctab$cities)
 
 ############### Summary figures ############### 
 
 # Rank cities by no. papers
 ctop <- ctab %>%
-  count(vars=cities,country) %>%
+  count(vars=cities) %>%
   arrange(desc(n))
 
 # Plot top cities in descending order
