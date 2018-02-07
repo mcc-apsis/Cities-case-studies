@@ -109,9 +109,17 @@ income_data <- full_join(income_data,data_OECD) %>%
   rename(OECD_income="value") %>%
   select(-c(year,unit))
 
-#ctop %>%
- # ggplot(.) +
-  #geom_point(aes(x=GEA_income,y=OECD_income))
+#fit <- lm(GEA_income~OECD_income,data = income_data)
+
+# income_data %>%
+#   ggplot(.,aes(x=GEA_income,y=OECD_income)) +
+#   geom_point() +
+#   stat_smooth(method = "lm", col = "red")
+# 
+# income_data %>%
+#   ggplot(.,aes(x=GEA_income,y=OECD_income+fit$coefficients[1])) +
+#   geom_point() +
+#   stat_smooth(method = "lm", col = "red")
 
 income_data <- income_data %>%
   gather(gdp,value,GEA_income,OECD_income) %>%
