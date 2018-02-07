@@ -59,9 +59,37 @@ data_OECD <- read.xlsx('Data/OECD city income.xlsx',encoding="UTF-8",sheetName =
   rename(cities="Metropolitan.areas",year="Year",unit="Unit",value="Value") %>%
   select(cities,year,unit,value)
 
+############### Aggregated Income data ###############
+
+data_income <- data_GEA %>%
+  rename(GEA_income="gdp_per_cap") %>%
+  select(cities,GEA_income)
+
+data_income <- full_join(data_income,data_OECD) %>%
+  rename(OECD_income="value") %>%
+  select(-c(year,unit))
+
+#fit <- lm(GEA_income~OECD_income,data = data_income)
+
+# data_income %>%
+#   ggplot(.,aes(x=GEA_income,y=OECD_income)) +
+#   geom_point() +
+#   stat_smooth(method = "lm", col = "red")
+# 
+# data_income %>%
+#   ggplot(.,aes(x=GEA_income,y=OECD_income+fit$coefficients[1])) +
+#   geom_point() +
+#   stat_smooth(method = "lm", col = "red")
+
+data_income <- data_income %>%
+  gather(gdp,value,GEA_income,OECD_income) %>%
+  group_by(cities) %>%
+  filter(is.na(value)==FALSE) %>%
+  filter(row_number()==1)
+
 ############### save ###############
 
-save(data_GEA,data_Seto,data_UN,data_OECD,file="Data/city_data.RData")
+save(data_GEA,data_Seto,data_UN,data_OECD,data_income,file="Data/city_data.RData")
 
 ############### Funny spatial data ############### 
 

@@ -99,41 +99,10 @@ library(fuzzyjoin)
 load(file = "Data/city_studies.RData")
 load(file = "Data/city_data.RData")
 
-######## merge GDP datasets (not normalised! preference for GEA data) ######## 
-
-income_data <- data_GEA %>%
-  rename(GEA_income="gdp_per_cap") %>%
-  select(cities,GEA_income)
-
-income_data <- full_join(income_data,data_OECD) %>%
-  rename(OECD_income="value") %>%
-  select(-c(year,unit))
-
-#fit <- lm(GEA_income~OECD_income,data = income_data)
-
-# income_data %>%
-#   ggplot(.,aes(x=GEA_income,y=OECD_income)) +
-#   geom_point() +
-#   stat_smooth(method = "lm", col = "red")
-# 
-# income_data %>%
-#   ggplot(.,aes(x=GEA_income,y=OECD_income+fit$coefficients[1])) +
-#   geom_point() +
-#   stat_smooth(method = "lm", col = "red")
-
-income_data <- income_data %>%
-  gather(gdp,value,GEA_income,OECD_income) %>%
-  group_by(cities) %>%
-  filter(is.na(value)==FALSE) %>%
-  filter(row_number()==1)
-
-
-######## join 
-
-ctop <- left_join(ctop,income_data, by = c("vars" = "cities")) 
+ctop <- left_join(ctop,data_income, by = c("vars" = "cities")) 
 
 ctop <- ctop %>%
-  group_by(gdp_pc = cut(ctop$value,breaks = c(round(quantile(income_data$value),-3)),include.lowest=TRUE,dig.lab=10)) %>% 
+  group_by(gdp_pc = cut(ctop$value,breaks = c(round(quantile(data_income$value),-3)),include.lowest=TRUE,dig.lab=10)) %>% 
   summarise(no_cities=n(),mean_gdp=mean(value),sum_articles=sum(n),mean_articles=mean(n),city_names=paste(vars, collapse=", ")) %>% 
   ungroup() %>% arrange(desc(gdp_pc))
 
@@ -160,5 +129,73 @@ kable(ctop, "html", caption="Urban studies versus GDP",digits=1) %>%
   kable_styling() %>%
   scroll_box(height = "300px")
 ```
+
+```{r include=FALSE}
+
+
+rm(list = ls())
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(magrittr)
+library(reshape2)
+library(svglite)
+library(fuzzyjoin)
+
+
+load(file = "Data/city_studies.RData")
+load(file = "Data/city_data.RData")
+
+
+######### merge it all into one giant mess ######### 
+data_UN <- data_UN %>%
+  select(Country,City,Value) %>%
+  group_by(City) %>%
+  filter(Value==max(Value))
+
+ctab <- left_join(ctab,data_UN,by= c("cities"="City"))
+ctab <- ctab %>% 
+  rename(pop=Value,country_UN=Country,country_own=country)
+ctab <- left_join(ctab,data_income)
+ctab <- ctab %>%
+  rename(income_source=gdp,income=value)
+  
+
+######### set thresholds ######### 
+ctab$pop_category <- cut(ctab$pop,breaks = c(100e6,10e6,5e6,1e6,1e5),include.lowest=TRUE,dig.lab=10)
+ctab$income_category <- cut(ctab$income,breaks = c(round(quantile(data_income$value),-3)),include.lowest=TRUE,dig.lab=10)
+
+ctab <- ctab %>%
+  select(cities,country_own,country_UN,pop,income,pop_category,income_category,everything())
+
+
+```
+```{r echo=FALSE,warning=FALSE, rows.print=4}
+
+
+ctab %>% 
+  gather(topic,value,Active.travel:e.Vehicles) %>%
+  group_by(pop_category,topic) %>%
+  summarise(value=mean(value)) %>%
+  
+  ggplot(., aes(pop_category,topic)) +
+  geom_tile(aes(fill = value),colour = "white") +
+  scale_fill_gradient(low = "white",high = "steelblue") +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
+
+ctab %>% 
+  gather(topic,value,Active.travel:e.Vehicles) %>%
+  group_by(income_category,topic) %>%
+  summarise(value=mean(value)) %>%
+  
+  ggplot(., aes(income_category,topic)) +
+  geom_tile(aes(fill = value),colour = "white") +
+  scale_fill_gradient(low = "white",high = "steelblue") +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
+
+
+
+```
+
 
 <br><br>
