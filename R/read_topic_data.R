@@ -42,21 +42,29 @@ ctab$country <-NA
 for (i in 1:length(ctab$abstract)) {
   for (j in 1:length(isos$countries)) {
     if (grepl(isos$countries[j],ctab$abstract[i],ignore.case=TRUE)==TRUE)
-      ctab$country[i] <- paste0(ctab$country[i],", ",isos$isos[j])
+      ctab$country[i] <- paste0(ctab$country[i],",",isos$isos[j])
   }
 }
+
 ctab$country <- gsub("NA,","",ctab$country)
 ctab <- ctab %>%
   select("cities","country",everything())
 
 ctab$cities <- gsub("New York City","New York",ctab$cities)
 
+#### only keep country if it is the single one identified #### 
+ctab <- ctab %>%
+  mutate(country=ifelse(nchar(ctab$country)>4,NA,country))
+
+
+
+
+
 ############### Summary figures ############### 
 
 # Rank cities by no. papers
 ctop <- ctab %>%
-  count(vars=cities) %>%
-  arrange(desc(n))
+  count(vars=cities,sort=TRUE)
 
 # Plot top cities in descending order
 g_count <- ctop %>%

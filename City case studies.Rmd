@@ -129,6 +129,11 @@ kable(ctop, "html", caption="Urban studies versus GDP",digits=1) %>%
   kable_styling() %>%
   scroll_box(height = "300px")
 ```
+<br>
+<hr>
+## Topics by region, key cities
+<br>
+
 
 ```{r include=FALSE}
 
@@ -141,58 +146,76 @@ library(magrittr)
 library(reshape2)
 library(svglite)
 library(fuzzyjoin)
-
+library(xlsx)
 
 load(file = "Data/city_studies.RData")
 load(file = "Data/city_data.RData")
 
-
 ######### merge it all into one giant mess ######### 
 data_UN <- data_UN %>%
-  select(Country,City,Value) %>%
+  select(Country,City,Value,City.type) %>%
   group_by(City) %>%
   filter(Value==max(Value))
 
 ctab <- left_join(ctab,data_UN,by= c("cities"="City"))
 ctab <- ctab %>% 
-  rename(pop=Value,country_UN=Country,country_own=country)
+  rename(pop=Value,country_UN=Country,country_own=country,city_pop_type=City.type)
 ctab <- left_join(ctab,data_income)
 ctab <- ctab %>%
   rename(income_source=gdp,income=value)
   
+######### Merge country and region names ######### 
+
+regions <- read.xlsx(file="C:\\Users\\lamw\\Google Drive\\Work\\Code\\MATLAB\\Data shop\\Region definitions\\regions.xls",sheetName = "Sheet1") %>%
+  select(ISO.Code,IAM10)
+
+df_isos <- read.xlsx(file="C:\\Users\\lamw\\Google Drive\\Work\\Code\\MATLAB\\Handy code\\ISOcodes.xls",
+                  sheetName="3 letter codes",colIndex=7:8,startRow=3,header=FALSE,encoding="UTF-8") %>%
+  rename(countries=X7,isos=X8) %>%
+  filter(!countries %in% c("US","World","Jersey"),!isos %in% c("ZZZZ","ZZZA")) %>%
+  mutate(countries=tolower(countries),isos=as.character(isos))
+
+ctab <- ctab %>%
+  mutate(country_UN=tolower(country_UN)) %>%
+  left_join(df_isos,by=c("country_UN"="countries"))
+
+# where countries are missing, use earlier abstract-search
+ctab$isos[is.na(ctab$isos)] <- ctab$country_own[is.na(ctab$isos)]
+
+ctab <- ctab %>%
+  left_join(regions,by=c("isos"="ISO.Code")) %>%
+  select(cities,country_own,country_UN,isos,IAM10,pop,income,everything())
+
+
+```
+```{r echo=FALSE,warning=FALSE, fig.width=7, fig.height=5}
+
+
+######### group by region and summarise #########
+ctab %>%
+  gather(topic,value,Active.travel:e.Vehicles) %>%
+  group_by(IAM10,topic) %>%
+  summarise(no_studies=n(),no_cities=length(unique(cities)),value=mean(value)) %>%
+  
+  ggplot(., aes(IAM10,topic)) +
+  geom_tile(aes(fill = value),colour = "white") +
+  scale_fill_gradient(low = "white",high = "steelblue") +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
 
 ######### set thresholds ######### 
 ctab$pop_category <- cut(ctab$pop,breaks = c(100e6,10e6,5e6,1e6,1e5),include.lowest=TRUE,dig.lab=10)
 ctab$income_category <- cut(ctab$income,breaks = c(round(quantile(data_income$value),-3)),include.lowest=TRUE,dig.lab=10)
 
-ctab <- ctab %>%
-  select(cities,country_own,country_UN,pop,income,pop_category,income_category,everything())
 
-
-```
-```{r echo=FALSE,warning=FALSE, rows.print=4}
-
-
-ctab %>% 
-  gather(topic,value,Active.travel:e.Vehicles) %>%
-  group_by(pop_category,topic) %>%
-  summarise(value=mean(value)) %>%
-  
-  ggplot(., aes(pop_category,topic)) +
-  geom_tile(aes(fill = value),colour = "white") +
-  scale_fill_gradient(low = "white",high = "steelblue") +
+# Rank cities by no. papers
+ctab %>%
+  group_by(cities,isos) %>%
+  summarise(n=n()) %>%
+  arrange(desc(n)) %>%
+  filter(n>10) %>%
+  ggplot(.,aes(x=reorder(cities,-n),y=n)) +
+  geom_bar(stat="identity") +
   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
-
-ctab %>% 
-  gather(topic,value,Active.travel:e.Vehicles) %>%
-  group_by(income_category,topic) %>%
-  summarise(value=mean(value)) %>%
-  
-  ggplot(., aes(income_category,topic)) +
-  geom_tile(aes(fill = value),colour = "white") +
-  scale_fill_gradient(low = "white",high = "steelblue") +
-  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
-
 
 
 ```
