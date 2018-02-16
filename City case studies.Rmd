@@ -13,11 +13,9 @@ output:
 
 **Hypothesis**: There are more studies for cities of a larger size.
 
-**Method**: Group cities by population size (>10m, 5-10m, 1-5m, <1m), sum and average the studies for each group.
+**Method**: Group cities by population size (>10m, 5-10m, 1-5m, 0.5-1m, 0.3-0.5m, <0.3m), sum and average the studies for each group.
 
-**Data**: Database of urban papers, population data for cities from the UN.
-
-**Results**: Hypothesis is correct for average and total articles per population bracket.
+**Data**: Database of urban papers, geonames database for city names and populations
 
 ```{r include=FALSE}
 
@@ -61,18 +59,16 @@ ctop <- ctop %>%
 ctop %>%
   ggplot(.) +
   geom_bar(aes(x=reorder(population_category,-mean_pop),y=mean_articles),stat="identity",fill="#2b8cbe") +
-  scale_x_discrete(labels = c(">10m","5-10m","1-5m","0.5-1m","<0.5m")) +
+  scale_x_discrete(labels = c(">10m","5-10m","1-5m","0.5-1m","0.3-0.5m","<0.3m")) +
   xlab("Cities, grouped by population") +
   ylab("Average articles")
 
 blarg %>%
   ggplot(.,aes(x=reorder(population_category,-mean_pop),y=sum_articles,fill=city_names)) +
   geom_bar(stat="identity") +
-  scale_x_discrete(labels = c(">10m","5-10m","1-5m","0.5-1m","<0.5m")) +
+  scale_x_discrete(labels = c(">10m","5-10m","1-5m","0.5-1m","0.3-0.5m","<0.3m")) +
   xlab("Cities, grouped by population") +
   ylab("Total articles")
-
-
 
 library(knitr)
 library(kableExtra)
@@ -91,35 +87,67 @@ data_proj %>%
   arrange(-desc(size_code)) %>%
   ggplot(.,aes(x=year,y=value,fill=size)) +
   geom_bar(stat='identity') +
-  scale_fill_brewer(palette='Set2')
+  scale_fill_discrete(labels = c(">10m","5-10m","1-5m","0.5-1m","0.3-0.5m","<0.3m"))
 
+```
 
+### Case studies pretty well reflect the population projections
+
+```{r echo=FALSE,warning=FALSE, rows.print=4}
 ctop$population_category <- factor(ctop$population_category, levels=rev(levels(ctop$population_category)))
-
 ctop %>%
   mutate(Articles="") %>%
-  arrange(-desc(population_category)) %>%
   ggplot(.,aes(x=Articles,y=sum_articles,fill=population_category)) +
   geom_bar(stat='identity') +
-  scale_fill_brewer(palette='Set2')
+  scale_fill_discrete(labels = c(">10m","5-10m","1-5m","0.5-1m","0.3-0.5m","<0.3m"))
+
+```
+
+### But case studies are geographically concentrated in Europe and North America
+
+```{r include=FALSE}
+
+
+rm(list = ls())
+library(tidyverse)
+library(svglite)
+library(xlsx)
+
+load(file = "Data/city_studies.RData")
+load(file = "Data/city_data.RData")
+
+######### merge it all into one giant mess ######### 
+
+ctab <- left_join(ctab,data_income, by = c("geo_city" = "City")) %>%
+  rename(gdp_source=gdp,gdp=value) %>%
+  mutate(geo_pop=as.numeric(geo_pop))
+
+
+```
+```{r echo=FALSE,warning=FALSE, fig.width=7, fig.height=5}
+
+
+######### heatmap by region, population, studies #########
+
+ctab$population_category <- cut(ctab$geo_pop,breaks=c(100e6,10e6,5e6,1e6,5e5,3e5,0),labels=c(">10m","5-10m","1-5m","0.5-1m","0.3-0.5m","<0.3m"),dig.lab=10,include.lowest=TRUE,ordered_result = TRUE)
+  
+ctab %>%
+  group_by(IAM10,population_category) %>%
+  summarise(no_studies=n(),no_cities=length(unique(geo_city)),mean_pop=mean(geo_pop)) %>%
+  complete(population_category) %>%
+  mutate(mean_pop=ifelse(is.na(mean_pop),0,mean_pop)) %>%
+
+  ggplot(.,aes(x=IAM10,y=reorder(population_category,-mean_pop))) +
+  geom_tile(aes(fill=no_studies),colour="grey50") +
+  scale_fill_distiller(palette = "Blues",direction=1,na.value = "white") +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
+  ylab("City population category") +
+  xlab("Region")
 
 ```
 
 
-<br>
-<hr>
-## The wealth bias of city case studies 
-<br>
-
-**Hypothesis**: There are more studies for wealthier cities.
-
-**Method**: Group cities by income classification (quantiles of global urban income), sum and average the studies for each group.
-
-**Data**: Database of urban papers, income data from GEA and OECD.
-
-**Results**: Hypothesis is correct, but with an uptick of studies in the lowest income bracket. These are mainly accounted for by Beijing and Shanghai.
-<br>
-
+### This probably reflects a general wealth bias that we see from the (limited) available income data of cities
 
 ```{r include=FALSE}
 
@@ -154,8 +182,6 @@ ctop <- ctop %>%
   ungroup() %>% arrange(desc(gdp_pc))
 
 
-
-
 ```
 ```{r echo=FALSE,warning=FALSE, rows.print=4}
 
@@ -177,88 +203,37 @@ kable(ctop, "html", caption="Urban studies versus GDP",digits=1) %>%
   kable_styling() %>%
   scroll_box(height = "300px")
 ```
-<br>
-<hr>
-## Topics by region, key cities
-<br>
 
+### Older plots...
 
 ```{r include=FALSE}
+
+######### heatmap by region, wealth, studies #########
+
+# ctab$income_category <- cut(ctab$income,breaks = c(round(quantile(data_income$value),-3)),include.lowest=TRUE,dig.lab=10)
+
+# for incomplete data  
+# ctab[is.na(ctab$population_category),]$population_category <- "Unknown Pop"
+# ctab$population_category <- factor(ctab$population_category, exclude=NULL)
+# ctab$income_category <- cut(ctab$income,breaks = c(round(quantile(data_income$value),-3)),include.lowest=TRUE,dig.lab=10)
+
 
 
 rm(list = ls())
 library(tidyverse)
 library(svglite)
-library(xlsx)
 
 load(file = "Data/city_studies.RData")
 load(file = "Data/city_data.RData")
 
-######### merge it all into one giant mess ######### 
-
-ctab <- left_join(ctab,data_income, by = c("geo_city" = "City")) %>%
-  rename(gdp_source=gdp,gdp=value) %>%
-  mutate(geo_pop=as.numeric(geo_pop))
-
-
-```
-```{r echo=FALSE,warning=FALSE, fig.width=7, fig.height=5}
-
-
-######### group by region and summarise topics #########
-blarg <- ctab %>%
-  gather(topic,value,Active.travel:e.Vehicles) %>%
-  group_by(IAM10,topic) %>%
-  summarise(no_studies=n(),no_cities=length(unique(geo_city)))# %>%
-  
-  ggplot(., aes(IAM10,topic)) +
-  geom_tile(aes(fill = value),colour = "white") +
-  scale_fill_gradient(low = "white",high = "steelblue") +
-  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
-
-
-######### heatmap by region, city size, studies #########
-
-ctab$population_category <- cut(ctab$geo_pop,breaks=c(100e6,10e6,5e6,1e6,5e5,3e5,0),labels=c(">10m","5-10m","1-5m","0.5-1m","0.3-0.5m","<0.3m"),dig.lab=10,include.lowest=TRUE,ordered_result = TRUE)
-  
-  
-# ctab[is.na(ctab$population_category),]$population_category <- "Unknown Pop"
-# ctab$population_category <- factor(ctab$population_category, exclude=NULL)
-# ctab$income_category <- cut(ctab$income,breaks = c(round(quantile(data_income$value),-3)),include.lowest=TRUE,dig.lab=10)
-
-  
-  
-ctab <- ctab %>%
-  group_by(IAM10,population_category) %>%
-  summarise(no_studies=n(),no_cities=length(unique(geo_city)),mean_pop=mean(geo_pop)) %>%
-  complete(population_category) %>%
-  mutate(mean_pop=ifelse(is.na(mean_pop),0,mean_pop))
-
-ctab %>%
-  ggplot(.,aes(x=IAM10,y=reorder(population_category,-mean_pop))) +
-  geom_tile(aes(fill=no_studies),colour="grey50") +
-  scale_fill_distiller(palette = "Blues",direction=1,na.value = "white") +
-  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
-  ylab("City population category") +
-  xlab("Region")
-
-
-
-
-
-
-######### set thresholds ######### 
-ctab$pop_category <- cut(ctab$pop,breaks = c(100e6,10e6,5e6,1e6,1e5),include.lowest=TRUE,dig.lab=10)
-ctab$income_category <- cut(ctab$income,breaks = c(round(quantile(data_income$value),-3)),include.lowest=TRUE,dig.lab=10)
-
 
 # Rank cities by no. papers
 ctab %>%
-  group_by(cities,isos) %>%
+  group_by(geo_city,geo_country) %>%
   summarise(n=n()) %>%
   arrange(desc(n)) %>%
   filter(n>10) %>%
-  ggplot(.,aes(x=reorder(cities,-n),y=n)) +
+  ggplot(.,aes(x=reorder(geo_city,-n),y=n)) +
   geom_bar(stat="identity") +
   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
 
