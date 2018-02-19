@@ -55,7 +55,8 @@ regions <- read.xlsx(file="C:\\Users\\lamw\\Google Drive\\Work\\Code\\MATLAB\\Da
 
 ctab <- ctab %>%
   left_join(regions,by=c("geo_country"="ISO.Code")) %>%
-  select(geo_city,geo_country,IAM10,UN6,everything())
+  select(geo_city,geo_country,IAM10,UN6,geo_pop,everything()) %>%
+  mutate(geo_pop=as.numeric(geo_pop))
 
 
 ############### save and done ###############

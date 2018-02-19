@@ -117,6 +117,27 @@ data_proj$size <- factor(data_proj$size, levels = levels)
 # data_geo <- read.xlsx(file="Data/cities15000.xlsx",sheetName="Sheet1",encoding="UTF-8",header=TRUE) 
 # save(data_geo,file="Data/geo_data.RData")
 
+rm(list = ls())
+library(tidyverse)
+library(xlsx)
+load(file = "Data/geo_data.RData")
+data_geo <- data_geo %>%
+  rename(city=name..............,country=country.code,pop=population........) %>%
+  select(city,country,pop) %>%
+  filter(pop>15000)
+
+regions <- read.xlsx(file="C:\\Users\\lamw\\Google Drive\\Work\\Code\\MATLAB\\Data shop\\Region definitions\\regions.xls",sheetName = "Sheet1") %>%
+  select(ISO.Code,IAM10,UN6)
+
+isos <- read.xlsx(file="C:\\Users\\lamw\\Google Drive\\Work\\Code\\MATLAB\\Handy code\\ISOcodes.xls",sheetName="3 letter codes",startRow = 3,colIndex=2:3,header=FALSE)
+names(isos) = c("2 letter","3 letter")
+
+data_geo <- left_join(data_geo,isos,by=c("country"="2 letter"))
+data_geo <- left_join(data_geo,regions,by=c("3 letter"="ISO.Code")) %>%
+  select(-country)
+
+save(data_geo,file="Data/geo_data.RData")
+
 ############### save ###############
 
 save(data_GEA,data_Seto,data_UN,data_OECD,data_income,data_proj,file="Data/city_data.RData") 

@@ -78,32 +78,38 @@ kable(ctop, "html", caption="Urban studies versus population",digits=1) %>%
 
 ```
 
-### Medium and small cities dominate population projections 
+
 
 ```{r echo=FALSE,warning=FALSE, rows.print=4}
 
-data_proj %>%
-  filter(area=="WORLD",type=="Population",year>2010) %>%
-  arrange(-desc(size_code)) %>%
-  ggplot(.,aes(x=year,y=value,fill=size)) +
-  geom_bar(stat='identity') +
-  scale_fill_discrete(labels = c(">10m","5-10m","1-5m","0.5-1m","0.3-0.5m","<0.3m"))
+### Medium and small cities dominate population projections 
+
+# data_proj %>%
+#   filter(area=="WORLD",type=="Population",year>2010) %>%
+#   arrange(-desc(size_code)) %>%
+#   ggplot(.,aes(x=year,y=value,fill=size)) +
+#   geom_bar(stat='identity') +
+#   scale_fill_discrete(labels = c(">10m","5-10m","1-5m","0.5-1m","0.3-0.5m","<0.3m"))
 
 ```
+
+
+```{r echo=FALSE,warning=FALSE, rows.print=4}
 
 ### Case studies pretty well reflect the population projections
 
-```{r echo=FALSE,warning=FALSE, rows.print=4}
-ctop$population_category <- factor(ctop$population_category, levels=rev(levels(ctop$population_category)))
-ctop %>%
-  mutate(Articles="") %>%
-  ggplot(.,aes(x=Articles,y=sum_articles,fill=population_category)) +
-  geom_bar(stat='identity') +
-  scale_fill_discrete(labels = c(">10m","5-10m","1-5m","0.5-1m","0.3-0.5m","<0.3m"))
+# ctop$population_category <- factor(ctop$population_category, levels=rev(levels(ctop$population_category)))
+# ctop %>%
+#   mutate(Articles="") %>%
+#   ggplot(.,aes(x=Articles,y=sum_articles,fill=population_category)) +
+#   geom_bar(stat='identity') +
+#   scale_fill_discrete(labels = c(">10m","5-10m","1-5m","0.5-1m","0.3-0.5m","<0.3m"))
+
 
 ```
-
+<hr>
 ### But case studies are geographically concentrated in Europe and North America
+<br>
 
 ```{r include=FALSE}
 
@@ -115,29 +121,53 @@ library(xlsx)
 
 load(file = "Data/city_studies.RData")
 load(file = "Data/city_data.RData")
+load(file="Data/geo_data.RData")
 
-######### merge it all into one giant mess ######### 
 
-ctab <- left_join(ctab,data_income, by = c("geo_city" = "City")) %>%
-  rename(gdp_source=gdp,gdp=value) %>%
-  mutate(geo_pop=as.numeric(geo_pop))
+######### merge studies into regional breakdown of cities and populations ######### 
 
+ctab$population_category <- cut(ctab$geo_pop,breaks=c(100e6,10e6,5e6,1e6,5e5,3e5,1),dig.lab=10,include.lowest=TRUE,ordered_result = TRUE)
+  
+ctab <- ctab %>%
+  group_by(IAM10) %>%
+  mutate(region_studies=sum(n())) %>%
+  group_by(IAM10,population_category) %>%
+  summarise(no_studies=n(),study_cities=length(unique(geo_city)),study_city_names=paste(unique(geo_city), collapse=", "),study_norm=sum(n())/first(region_studies)) %>%
+  complete(population_category)
+
+data_geo$population_category <- cut(data_geo$pop,breaks=c(100e6,10e6,5e6,1e6,5e5,3e5,1),dig.lab=10,include.lowest=TRUE,ordered_result = TRUE)
+
+data_geo <- data_geo %>%
+  group_by(IAM10) %>%
+  mutate(region_pop=sum(pop)) %>%
+  ungroup() %>%
+  group_by(IAM10,population_category) %>%
+  summarise(geo_cities=n(),geo_city_names=paste(city, collapse=", "),geo_pop=sum(pop),geo_norm_pop=sum(pop)/mean(region_pop)) %>%
+  complete(population_category)
+
+
+blarg <- left_join(ctab,data_geo)
+
+zz <- blarg %>%
+  group_by(population_category) %>%
+  summarise(geo_pop = sum(geo_pop,na.rm=TRUE),no_studies=sum(no_studies,na.rm=TRUE)) %>%
+  mutate(IAM10="WORLD") %>%
+  group_by(IAM10) %>%
+  mutate(total_studies=sum(no_studies),total_pop=sum(geo_pop)) %>%
+  ungroup() %>%
+  mutate(study_norm=no_studies/total_studies,geo_norm_pop=geo_pop/total_pop) %>%
+  select(-c(total_studies,total_pop))
+
+blarg <- full_join(blarg,zz)
 
 ```
 ```{r echo=FALSE,warning=FALSE, fig.width=7, fig.height=5}
 
 
-######### heatmap by region, population, studies #########
+####################### no of studies per region and pop category #######################
 
-ctab$population_category <- cut(ctab$geo_pop,breaks=c(100e6,10e6,5e6,1e6,5e5,3e5,0),labels=c(">10m","5-10m","1-5m","0.5-1m","0.3-0.5m","<0.3m"),dig.lab=10,include.lowest=TRUE,ordered_result = TRUE)
-  
 ctab %>%
-  group_by(IAM10,population_category) %>%
-  summarise(no_studies=n(),no_cities=length(unique(geo_city)),mean_pop=mean(geo_pop)) %>%
-  complete(population_category) %>%
-  mutate(mean_pop=ifelse(is.na(mean_pop),0,mean_pop)) %>%
-
-  ggplot(.,aes(x=IAM10,y=reorder(population_category,-mean_pop))) +
+  ggplot(.,aes(x=IAM10,y=population_category)) +
   geom_tile(aes(fill=no_studies),colour="grey50") +
   scale_fill_distiller(palette = "Blues",direction=1,na.value = "white") +
   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
@@ -146,8 +176,33 @@ ctab %>%
 
 ```
 
+<hr>
+### And case studies regionally mis-match the population breakdown of cities
+<br>
 
+
+```{r echo=FALSE,warning=FALSE, fig.width=12, fig.height=5}
+
+####################### regional focus of research vs. breakdown of city populations #######################
+
+blarg$population_category <- factor(blarg$population_category, levels=rev(levels(blarg$population_category)))
+
+blarg <- blarg %>%
+  filter(is.na(IAM10)==FALSE) %>%
+  mutate(norm_region_pop = geo_norm_pop,norm_study_count = study_norm) %>%
+  gather(key = "key", value = "value",c(norm_study_count,norm_region_pop))
+
+blarg %>%
+  ggplot(.,aes(x=key,y=value,fill=population_category)) +
+  geom_bar(stat='identity') +
+  facet_grid(.~IAM10) +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
+
+```
+
+<hr>
 ### This probably reflects a general wealth bias that we see from the (limited) available income data of cities
+<br>
 
 ```{r include=FALSE}
 
