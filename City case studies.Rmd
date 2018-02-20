@@ -8,7 +8,7 @@ output:
 ---
 
 <hr>
-#### City case Studies have no distinct trend with city population size, although a few top global cities dominate the analysis
+#### Case studies have no distinct trend with city population size, although a few top global cities dominate the analysis
 <br>
 
 ```{r include=FALSE}
@@ -269,7 +269,7 @@ blarg %>%
 
 kable(ctop, "html", caption="Urban studies versus GDP",digits=1) %>%
   kable_styling() %>%
-  scroll_box(height = "300px")
+  scroll_box(height = "200px")
 ```
 
 ```{r include=FALSE}
