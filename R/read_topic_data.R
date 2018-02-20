@@ -52,6 +52,8 @@ ctab <- ctab %>%
 
 regions <- read.xlsx(file="C:\\Users\\lamw\\Google Drive\\Work\\Code\\MATLAB\\Data shop\\Region definitions\\regions.xls",sheetName = "Sheet1") %>%
   select(ISO.Code,IAM10,UN6)
+regions$UN6 <- gsub("LATIN AMERICA AND THE CARIBBEAN","LATIN AMERICA",regions$UN6)
+regions$UN6 <- gsub("NORTHERN AMERICA","NORTH AMERICA",regions$UN6)
 
 ctab <- ctab %>%
   left_join(regions,by=c("geo_country"="ISO.Code")) %>%
