@@ -4,11 +4,19 @@ library(svglite)
 library(xlsx)
 
 ctab <-
-  read.csv("Data/cities_places_topics.csv",sep=",",header=TRUE, encoding="UTF-8") %>%
+  read.csv("Data/cities_places_topics_v2.csv",sep=",",header=TRUE, encoding="UTF-8") %>%
   subset(select=-c(X)) %>%
   select(cities,countries,year,title,abstract,doi,authors,everything()) %>%
   rename(geo_city=cities,geo_country=countries,geo_pop=population)
 
+
+############### remove proceedings ###############
+
+ctab <- ctab %>%
+  filter(!grepl("Conference",title)) %>%
+  filter(!grepl("conference",title)) %>%
+  filter(!grepl("Proceedings",title)) %>%
+  filter(!grepl("proceedings",title))
 
 ############### duplicate rows where there is more than one city ###############
 
@@ -39,12 +47,26 @@ ctab <- ctab[!(grepl(';',ctab$geo_pop)),] %>%
   mutate(geo_pop=trimws(geo_pop))
 
 
+############### if a study is duplicated, divide the total citations among each duplication ###############
+
+ctab <- ctab %>%
+  group_by(title) %>%
+  mutate(citations = citations/n())
+
 ############### Annoyances ###############
 
 
 ctab <- ctab %>%
   mutate(geo_country=ifelse(grepl("Newcastle upon Tyne",abstract) & geo_city=="Newcastle","GBR",geo_country)) %>%
   mutate(geo_country=ifelse(grepl("Australia",abstract) & geo_city=="Newcastle","AUS",geo_country))
+
+
+############### Attach topics names ###############
+
+topic_names <- read.xlsx(file="C:\\Users\\lamw\\Google Drive\\Work\\Publications\\Cities case studies\\Data\\topic names.xlsx",sheetIndex = "Run 733") %>%
+  arrange(Stemmed.Keywords)
+
+ctab <- setNames(ctab,c(names(ctab)[1:11],as.character(topic_names$Topic.Name)))
 
 
 ############### Attach regions ############### 
@@ -57,7 +79,7 @@ regions$UN6 <- gsub("NORTHERN AMERICA","NORTH AMERICA",regions$UN6)
 
 ctab <- ctab %>%
   left_join(regions,by=c("geo_country"="ISO.Code")) %>%
-  select(geo_city,geo_country,IAM10,UN6,geo_pop,everything()) %>%
+  select(geo_city,geo_country,IAM10,UN6,geo_pop,citations,everything()) %>%
   mutate(geo_pop=as.numeric(geo_pop))
 
 
@@ -120,6 +142,3 @@ save(ctab,file="Data/city_studies.RData")
 # ##
 # ggsave(file = "Plots/City_studies.pdf",plot = g_count)
 # ggsave(file = "Plots/City_topics.pdf",plot = g_heat)
-
-
-
