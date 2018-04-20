@@ -66,7 +66,7 @@ ctab <- ctab %>%
 topic_names <- read.xlsx(file="C:\\Users\\lamw\\Google Drive\\Work\\Publications\\Cities case studies\\Data\\topic names.xlsx",sheetIndex = "Run 733") %>%
   arrange(Stemmed.Keywords)
 
-ctab <- setNames(ctab,c(names(ctab)[1:11],as.character(topic_names$Topic.Name)))
+ctab <- setNames(ctab,c(names(ctab)[1:12],as.character(topic_names$Topic.Name)))
 
 
 ############### Attach regions ############### 
@@ -81,6 +81,14 @@ ctab <- ctab %>%
   left_join(regions,by=c("geo_country"="ISO.Code")) %>%
   select(geo_city,geo_country,IAM10,UN6,geo_pop,citations,everything()) %>%
   mutate(geo_pop=as.numeric(geo_pop))
+
+
+
+############### How many nan citations ###############
+
+z<- ctab %>%
+  filter(is.na(citations)==TRUE)
+
 
 
 ############### save and done ###############

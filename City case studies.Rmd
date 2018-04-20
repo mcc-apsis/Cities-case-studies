@@ -35,10 +35,10 @@ ctop <- left_join(ctop,data_UN, by = c("geo_city" = "City")) %>%
 ctop <- ctop %>%
   mutate(geo_pop=ifelse(UN_type=="Urban agglomeration" & is.na(UN_type)==FALSE,UN_pop,geo_pop))
 
-ctop$population_category <- cut(ctop$geo_pop,breaks = c(100e6,10e6,5e6,1e6,5e5,3e5,0),dig.lab=10,include.lowest=TRUE)
+ctop$population_category <- cut(ctop$geo_pop,breaks = c(100e6,10e6,1e6,3e5,0),dig.lab=10,include.lowest=TRUE)
 
 blarg <- ctop %>%
-  group_by(population_category,n==289,n==149,n==143,n==117,n==69,n==60,n==59,geo_pop==7457600,geo_pop==4246375,n==49,n==47,n==45,n==43,n==42,geo_pop==20116842,geo_pop==4627345,n==40) %>%
+  group_by(population_category,n==284,n==146,n==140,n==117,n==66,geo_pop==11789487,geo_pop==12576601,geo_pop==8307904,geo_pop==4246375,n==47,n==46,n==45,n==42,geo_pop==11071424,geo_pop==20116842) %>%
   summarise(no_cities=n(),mean_pop=mean(geo_pop),sum_articles=sum(n),mean_articles=mean(n),city_names=paste(geo_city, collapse=", ")) %>% 
   ungroup() %>% arrange(desc(population_category))
 
@@ -55,18 +55,11 @@ ctop <- ctop %>%
 ```{r  studies_v_population, echo=FALSE, warning=FALSE, rows.print=4, fig.path='Plots/', dev=c('png','pdf')}
 
 blarg %>%
-  ggplot(.,aes(x=reorder(population_category,-mean_pop),y=sum_articles,fill=city_names)) +
+  ggplot(.,aes(x=reorder(population_category,mean_pop),y=sum_articles,fill=city_names)) +
   geom_bar(stat="identity") +
-  scale_x_discrete(labels = c(">10m","5-10m","1-5m","0.5-1m","0.3-0.5m","<0.3m")) +
+  scale_x_discrete(labels = c("<0.3m","0.3-1m","1-10m",">10m")) +
   xlab("Cities, grouped by population") +
   ylab("Total articles")
-
-ctop %>%
-  ggplot(.) +
-  geom_bar(aes(x=reorder(population_category,-mean_pop),y=mean_articles),stat="identity",fill="#2b8cbe") +
-  scale_x_discrete(labels = c(">10m","5-10m","1-5m","0.5-1m","0.3-0.5m","<0.3m")) +
-  xlab("Cities, grouped by population") +
-  ylab("Average articles")
 
 library(knitr)
 library(kableExtra)
@@ -74,21 +67,9 @@ kable(ctop, "html", caption="Urban studies versus population",digits=1) %>%
   kable_styling() %>%
   scroll_box(height = "200px")
 
-
-
 ```
 
 ```{r echo=FALSE,warning=FALSE, rows.print=4}
-
-### same results, using agglomerations
-
-
-
-
-
-
-
-
 
 ### Medium and small cities dominate population projections 
 
@@ -113,6 +94,7 @@ kable(ctop, "html", caption="Urban studies versus population",digits=1) %>%
 
 ```
 
+#### Case studies regionally mis-match the population breakdown of cities
 
 ```{r include=FALSE}
 
@@ -128,215 +110,206 @@ load(file = "Data/city_data.RData")
 
 region='UN6'
 
+## use agglomeration data if we have it
+ctab <- left_join(ctab,data_UN, by = c("geo_city" = "City")) %>%
+  select(-c(Year,Country,Record.Type,Reliability,Value.Footnotes))
+
+ctab <- ctab %>%
+  mutate(geo_pop=ifelse(UN_type=="Urban agglomeration" & is.na(UN_type)==FALSE,UN_pop,geo_pop))
+
 
 ######### merge studies into regional breakdown of cities and populations ######### 
 
-ctab$population_category <- cut(ctab$geo_pop,breaks=c(100e6,10e6,5e6,1e6,5e5,3e5,1),dig.lab=10,include.lowest=TRUE,ordered_result = TRUE)
-  
+ctab$population_category <- cut(ctab$geo_pop,breaks=c(100e6,10e6,1e6,3e5,1),dig.lab=10,include.lowest=TRUE,ordered_result = TRUE)
+
+
+
 ctab <- ctab %>%
-  group_by_(region) %>%
-  mutate(region_studies=sum(n()),region_cites=sum(citations,na.rm=TRUE)) %>%
   group_by_(region,'population_category') %>%
-  summarise(no_studies=n(),study_cities=length(unique(geo_city)),citations=sum(citations,na.rm=TRUE),norm_citations=sum(citations,na.rm=TRUE)/first(region_cites),study_city_names=paste(unique(geo_city),collapse=", "),study_norm=sum(n())/first(region_studies)) %>%
-  complete(population_category)
+  summarise(no_studies=n(),study_cities=length(unique(geo_city)),citations=sum(citations,na.rm=TRUE)) %>%
+  complete(population_category) %>% 
+  ungroup()
 
-data_geo$population_category <- cut(data_geo$pop,breaks=c(100e6,10e6,5e6,1e6,5e5,3e5,1),dig.lab=10,include.lowest=TRUE,ordered_result = TRUE)
-
-data_geo <- data_geo %>%
-  group_by_(region) %>%
-  mutate(region_pop=sum(pop)) %>%
-  ungroup() %>%
-  group_by_(region,'population_category') %>%
-  summarise(geo_cities=n(),geo_city_names=paste(city, collapse=", "),geo_pop=sum(pop),geo_norm_pop=sum(pop)/mean(region_pop)) %>%
-  complete(population_category)
-
-
-blarg <- left_join(ctab,data_geo)
+ctab <- ctab %>%
+  rbind(
+    ctab %>% 
+      group_by(population_category) %>%
+      summarise(UN6="WORLD",no_studies=sum(no_studies,na.rm=TRUE),study_cities=sum(study_cities,na.rm=TRUE),
+                citations=sum(citations,na.rm=TRUE)) %>%
+      ungroup() %>%
+      select(UN6,population_category,no_studies,study_cities,citations)
+  ) %>%
+  filter(!is.na(UN6))
 
 
-world <- blarg %>%
-  group_by(population_category) %>%
-  summarise(geo_pop = sum(geo_pop,na.rm=TRUE),no_studies=sum(no_studies,na.rm=TRUE),citations=sum(citations,na.rm=TRUE))
-world[[region]] <- "WORLD"
-world <- world %>%
-  group_by_(region) %>%
-  mutate(total_studies=sum(no_studies),total_pop=sum(geo_pop),total_cites=sum(citations)) %>%
-  ungroup() %>%
-  mutate(study_norm=no_studies/total_studies,geo_norm_pop=geo_pop/total_pop,norm_citations=citations/total_cites) %>%
-  select(-c(total_studies,total_pop,total_cites))
 
-blarg <- full_join(blarg,world)
 
+# ## use agglomeration data if we have it
+# data_geo <- left_join(data_geo,data_UN,by=c("city"="City")) %>%
+#   select(-c(Year,Country,Record.Type,Reliability,Value.Footnotes))
+# 
+# data_geo <- data_geo %>%
+#   mutate(pop=ifelse(UN_type=="Urban agglomeration" & is.na(UN_type)==FALSE,UN_pop,pop))
+# 
+# data_geo$population_category <- cut(data_geo$pop,breaks=c(100e6,10e6,1e6,3e5,1),dig.lab=10,include.lowest=TRUE,ordered_result = TRUE)
+# 
+# ## calculate regional population ratios
+# data_geo <- data_geo %>%
+#   group_by_(region) %>%
+#   mutate(region_pop=sum(pop)) %>%
+#   ungroup() %>%
+#   group_by_(region,'population_category') %>%
+#   summarise(geo_cities=n(),geo_city_names=paste(city, collapse=", "),geo_pop=sum(pop),geo_norm_pop=sum(pop)/mean(region_pop)) %>%
+#   complete(population_category)
+# 
+# blarg <- left_join(ctab,data_geo)
+# 
+# ####################### Make 'world' a region ####################### 
+# 
+# world <- blarg %>%
+#   group_by(population_category) %>%
+#   summarise(geo_pop = sum(geo_pop,na.rm=TRUE),no_studies=sum(no_studies,na.rm=TRUE),citations=sum(citations,na.rm=TRUE))
+# world[[region]] <- "WORLD"
+# world <- world %>%
+#   group_by_(region) %>%
+#   mutate(total_studies=sum(no_studies),total_pop=sum(geo_pop),total_cites=sum(citations)) %>%
+#   ungroup() %>%
+#   mutate(study_norm=no_studies/total_studies,geo_norm_pop=geo_pop/total_pop,norm_citations=citations/total_cites) %>%
+#   select(-c(total_studies,total_pop,total_cites))
+# 
+# blarg <- full_join(blarg,world)
+
+####################### 
 
 data_proj$area <- gsub("LATIN AMERICA AND THE CARIBBEAN","LATIN AMERICA",data_proj$area)
 data_proj$area <- gsub("NORTHERN AMERICA","NORTH AMERICA",data_proj$area)
-data_proj$size <- gsub("10 million or more","(10000000,100000000]",data_proj$size)
-data_proj$size <- gsub("5 to 10 million","(5000000,10000000]",data_proj$size)
-data_proj$size <- gsub("1 to 5 million","(1000000,5000000]",data_proj$size)
-data_proj$size <- gsub("500 000 to 1 million","(500000,1000000]",data_proj$size)
-data_proj$size <- gsub("300 000 to 500 000","(300000,500000]",data_proj$size)
-data_proj$size <- gsub("Fewer than 300 000","[1,300000]",data_proj$size)
 
-projection <- data_proj %>%
-  filter(year==2030 | year==2010,type=="Population") %>%
-  filter(area=="WORLD" | area=="AFRICA" | area=="ASIA" | area=="EUROPE" | area=="LATIN AMERICA" | area=="NORTH AMERICA" | area=="OCEANIA") %>%
-  rename(pop=value,UN6=area,population_category=size) %>%
-  select(UN6,population_category,pop,year) 
+data_proj <- data_proj %>%
+  filter(area=="WORLD" | area=="AFRICA" | area=="ASIA" | area=="EUROPE" | area=="LATIN AMERICA" | area=="NORTH AMERICA" | area=="OCEANIA")
 
-projection <- projection %>%
-  group_by(UN6,year) %>%
-  mutate(norm_pop = sum(pop)) %>%
-  ungroup() %>%
-  mutate(norm_pop = pop/norm_pop)
+data_proj <- data_proj %>% 
+  filter(size_code %in% c(1,6)) %>% 
+  mutate(size=ifelse(size_code==1,"(10000000,100000000]",size)) %>%
+  mutate(size=ifelse(size_code==6,"[1,300000]",size)) %>%
+  rbind(
+    data_proj %>%
+      filter(size_code %in% c(2,3)) %>% 
+      group_by(area,year,type) %>%
+      summarise(value=sum(value)) %>% 
+      ungroup() %>% 
+      mutate(size_code=23,size="(1000000,10000000]") %>% 
+      select(area,size,size_code,type,year,value)
+  ) %>% 
+  rbind(
+    data_proj %>%
+      filter(size_code %in% c(4,5)) %>% 
+      group_by(area,year,type) %>%
+      summarise(value=sum(value)) %>% 
+      ungroup() %>% 
+      mutate(size_code=45,size="(300000,1000000]") %>% 
+      select(area,size,size_code,type,year,value)
+  ) %>%
+  filter(type=="Population") %>% 
+  select(-size_code,-type)
+  
+data_proj <- data_proj %>%
+  mutate(value=value*1000) %>% 
+  filter(year %in% c(2015,2030)) %>%
+  spread(year,value) %>%
+  set_names(c("area","size","popUN_2015","popUN_2030"))
 
-projection$population_category <- as.factor(projection$population_category)
-projection$population_category <- factor(projection$population_category,levels(projection$population_category)[c(6,3,4,1,5,2)])
+
+### join
+
+blarg <- left_join(ctab,data_proj,by=c("UN6"="area","population_category"="size"))
 
 
-summary <- blarg %>% 
+
+#### calculate ratios, global first
+
+all_studies <- sum(blarg$no_studies[data_proj$area=="WORLD"])
+world_pop_2015 <- sum(data_proj$popUN_2015[data_proj$area=="WORLD"])
+world_pop_2030 <- sum(data_proj$popUN_2030[data_proj$area=="WORLD"])
+
+blarg <- blarg %>%
+  mutate(average_citations=citations/no_studies) %>%
+  mutate(ratio_studies_global=no_studies/all_studies) %>%
+  mutate(ratio_pop_2015_global=popUN_2015/world_pop_2015) %>%
+  mutate(ratio_pop_2030_global=popUN_2030/world_pop_2030)
+
+#### regional
+
+blarg <- blarg %>% 
   group_by(UN6) %>% 
-  summarise(total_cities=sum(geo_cities,na.rm=TRUE),total_study_cities=sum(study_cities,na.rm=TRUE),total_studies=sum(no_studies,na.rm=TRUE))
+  mutate(region_pop_2015=sum(popUN_2015,na.rm=TRUE)) %>% 
+  mutate(region_pop_2030=sum(popUN_2030,na.rm=TRUE)) %>% 
+  mutate(region_studies=sum(no_studies,na.rm=TRUE)) %>%
+  ungroup() %>% 
+  mutate(ratio_studies_region=no_studies/region_studies) %>% 
+  mutate(ratio_pop_2015_region=popUN_2015/region_pop_2015) %>% 
+  mutate(ratio_pop_2030_region=popUN_2030/region_pop_2030) %>%
+  select(-region_pop_2015,-region_pop_2030,-region_studies)
 
-```
 
-
-```{r studies_v_region, echo=FALSE,warning=FALSE, fig.path="Plots/",dev=c('png','pdf')}
-
-#### Case studies are geographically concentrated in Asia, Europe and North America
-
-
-####################### no of studies per region and pop category #######################
-
-# ctab %>%
-#   group_by(UN6) %>%
-#   filter(is.na(UN6)==FALSE) %>%
-#   summarise(no_studies=sum(no_studies,na.rm=TRUE)) %>%
-#   ggplot(.,aes(x=reorder(UN6,-no_studies),y=no_studies)) +
-#   geom_bar(stat='identity',fill="#2b8cbe") +
-#   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
-#   xlab("") +
-#   ylab("No. case studies")
-# 
-# ctab %>%
-#   filter(is.na(UN6)==FALSE) %>%
-#   ggplot(.,aes(UN6,population_category)) +
-#   geom_tile(aes(fill=no_studies),colour="grey50") +
-#   scale_fill_distiller(palette = "Blues",direction=1,na.value = "white") +
-#   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
-#   ylab("City population size") +
-#   xlab("") +
-#   scale_y_discrete(labels = rev(c(">10m","5-10m","1-5m","0.5-1m","0.3-0.5m","<0.3m")))
+blarg$population_category <- as.factor(blarg$population_category)
+blarg$population_category <- factor(blarg$population_category,levels(blarg$population_category)[c(4,3,1,2)])
 
 
 ```
-
-<hr>
-#### Case studies regionally mis-match the population breakdown of cities
-<br>
 
 
 ```{r study_distribution, echo=FALSE,warning=FALSE, fig.width=12, fig.height=5,fig.path="Plots/",dev=c('png','pdf')}
 
-####################### regional focus of research vs. breakdown of city populations #######################
-
-blarg$population_category <- factor(blarg$population_category, levels=rev(levels(blarg$population_category)))
-blarg <- blarg[is.na(blarg[region])==FALSE,]
+####################### fraction of case studies and population (relative to region) #######################
 
 blarg %>%
-  mutate(Population = geo_norm_pop,Case_studies = study_norm,Citations=norm_citations) %>%
-  gather(key = "key", value = "value",c(Case_studies,Population,Citations)) %>%
-  ggplot(.,aes(x=key,y=value,fill=population_category)) +
-  geom_bar(stat='identity') +
-  facet_grid(reformulate(region)) +
+  ggplot(.) +
+  geom_point(aes(x=UN6,y=ratio_studies_region),stat='identity',colour='blue') +
+  geom_point(aes(x=UN6,y=ratio_pop_2015_region),stat='identity',colour='black') +
+  geom_point(aes(x=UN6,y=ratio_pop_2030_region),stat='identity',colour='red') +
+  geom_segment(aes(x=UN6,yend=ratio_studies_region+ifelse(ratio_studies_region>ratio_pop_2015_region,-0.015,0.015),xend=UN6,
+                   y=ratio_pop_2015_region+ifelse(ratio_studies_region>ratio_pop_2015_region,0.015,-0.015)),arrow=arrow(length=unit(0.3,"cm"))) + 
+  facet_grid(. ~ population_category) +
   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
-  ylab("Fraction of regional pop/citations/case studies per city size") +
-  xlab("")
+  ggtitle("proportion of studies relative to urban inhabitats in each city size, by region (arrow going up = overrepresented)")
 
 
-projection <- projection %>%
-  select(-norm_pop) %>%
-  spread(year,pop) %>%
-  rename(UN_pop_2010='2010',UN_pop_2030='2030')
+####################### average citations by region / city size #######################
 
-zz <- left_join(blarg,projection) %>%
-  group_by(UN6) %>%
-  summarise(a_total_studies=sum(no_studies,na.rm =TRUE),b_total_citations=sum(citations,na.rm =TRUE),c_geo_pop=sum(geo_pop,na.rm =TRUE),d_UNpop_2010=sum(UN_pop_2010,na.rm=TRUE),e_UNpop_2030=sum(UN_pop_2030,na.rm=TRUE)) %>%
-  filter(!is.na(UN6))
-
-zz %>%
-  mutate(a_total_studies=a_total_studies/zz$a_total_studies[zz$UN6=="WORLD"],b_total_citations=b_total_citations/zz$b_total_citations[zz$UN6=="WORLD"],c_geo_pop=c_geo_pop/zz$c_geo_pop[zz$UN6=="WORLD"],d_UNpop_2010=d_UNpop_2010/zz$d_UNpop_2010[zz$UN6=="WORLD"],e_UNpop_2030=e_UNpop_2030/zz$e_UNpop_2030[zz$UN6=="WORLD"]) %>%
-  filter(!UN6=="WORLD") %>%
-  gather(key="key",value="value",c(a_total_studies,b_total_citations,d_UNpop_2010,e_UNpop_2030)) %>%
-  ggplot(.,aes(x=key,y=value,fill=UN6)) +
+blarg %>%
+  ggplot(.,aes(x=population_category,y=average_citations,fill=UN6)) + 
   guides(fill=FALSE) +
   geom_bar(stat='identity') +
   facet_grid(reformulate(region)) +
-  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
-  ylab("Case studies, citations and population \n per region as a fraction of global") +
-  xlab("")
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
 
-```
-
-<hr>
-#### No clear wealth bias - but need to correct the data for Beijing and Shanghai
-<br>
-
-```{r include=FALSE}
-
-rm(list = ls())
-library(tidyverse)
-library(svglite)
-
-load(file = "Data/city_studies.RData")
-load(file = "Data/city_data.RData")
-
-ctop <- ctab %>%
-  group_by(geo_city,geo_country,geo_pop) %>%
-  summarise(n=n()) %>%
-  arrange(desc(n)) %>%
-  mutate(geo_pop=as.numeric(geo_pop))
-
-ctop <- left_join(ctop,data_income, by = c("geo_city" = "City")) 
-
-ctop$gdp_pc = cut(ctop$value,breaks = c(round(quantile(data_income$value),-3)),include.lowest=TRUE,dig.lab=10)
-
-blarg <- ctop %>%
-  group_by(gdp_pc,n==162,n==71,n==65,n==57) %>%
-  summarise(no_cities=n(),mean_gdp=mean(value),sum_articles=sum(n),mean_articles=mean(n),city_names=paste(geo_city, collapse=", ")) %>% 
-  ungroup() %>% arrange(desc(gdp_pc))
-
-blarg<- blarg %>%
-  mutate(city_names=ifelse(nchar(blarg$city_names)>15,"Other",city_names))
-
-ctop <- ctop %>%
-  group_by(gdp_pc) %>% 
-  summarise(no_cities=n(),mean_gdp=mean(value),sum_articles=sum(n),mean_articles=mean(n),city_names=paste(geo_city, collapse=", ")) %>% 
-  ungroup() %>% arrange(desc(gdp_pc))
-
-
-```
-```{r echo=FALSE,warning=FALSE, rows.print=4}
-
-ctop %>%
-  ggplot(.) +
-  geom_bar(aes(x=reorder(gdp_pc,-mean_gdp),y=mean_articles),stat="identity",fill="#2b8cbe") +
-  #scale_x_discrete(labels = c(">$20k","$12k-$20k","$5k-$12k","NA")) +
-  xlab("Cities, grouped by GDP per capita") +
-  ylab("Average articles")
+####################### Case studies vs. population shares & projections #######################
 
 blarg %>%
-  ggplot(.,aes(x=reorder(gdp_pc,-mean_gdp),y=sum_articles,fill=city_names)) +
-  geom_bar(stat="identity") +
-  #scale_x_discrete(labels = c(">$20k","$12k-$20k","$5k-$12k","NA")) +
-  xlab("Cities, grouped by GDP per capita") +
-  ylab("Total articles")
+  mutate(ratio=ratio_studies_region/ratio_pop_2030_region) %>%
+  mutate(ratio=ifelse(ratio_studies_region<ratio_pop_2030_region,2-(ratio_pop_2030_region/ratio_studies_region),ratio)) %>% 
+  ggplot(.) +
+  geom_point(aes(x=population_category,y=ratio),stat='identity',colour='blue') +
+  facet_grid(.~ UN6)+
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
 
-library(knitr)
-library(kableExtra)
-kable(ctop, "html", caption="Urban studies versus GDP",digits=1) %>%
-  kable_styling() %>%
-  scroll_box(height = "200px")
+blarg %>%
+  mutate(ratio=ratio_studies_global/ratio_pop_2030_global) %>%
+  mutate(ratio=ifelse(ratio_studies_global<ratio_pop_2030_global,2-(ratio_pop_2030_global/ratio_studies_global),ratio)) %>% 
+  ggplot(.) +
+  geom_point(aes(x=population_category,y=ratio),stat='identity',colour='blue') +
+  facet_grid(.~ UN6)+
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
+
+# summary <- blarg %>% 
+#   group_by(UN6) %>% 
+#   summarise(total_cities=sum(geo_cities,na.rm=TRUE),total_study_cities=sum(study_cities,na.rm=TRUE),total_studies=sum(no_studies,na.rm=TRUE))
+
+
+
+
 ```
+
 <hr>
 ### The structure of comparative research 
 <br>
@@ -348,13 +321,41 @@ library(tidyverse)
 library(svglite)
 
 load(file = "Data/city_studies.RData")
+load(file = "Data/city_data.RData")
 
 
-blarg <- ctab %>%
+## use agglomeration data if we have it
+ctab <- left_join(ctab,data_UN, by = c("geo_city" = "City")) %>%
+  select(-c(Year,Country,Record.Type,Reliability,Value.Footnotes))
+
+ctab <- ctab %>%
+  mutate(geo_pop=ifelse(UN_type=="Urban agglomeration" & is.na(UN_type)==FALSE,UN_pop,geo_pop))
+
+ctab <- ctab %>%
   group_by(title) %>%
   mutate(comparative = ifelse(n()>1,1,0)) %>%
-  select(geo_city:year,comparative,everything()) %>%
+  select(geo_city:year,comparative,everything()) 
+
+ctab$population_category <- cut(ctab$geo_pop,breaks = c(100e6,10e6,1e6,3e5,0),dig.lab=10,include.lowest=TRUE)
+
+blarg <- ctab %>%
   filter(comparative==1)
+
+# cxc <- ctab %>%
+#   group_by(title,abstract) %>%
+#   summarise(regions=paste(unique(UN6),collapse=";"),cities=paste(unique(geo_city),collapse=";"),comparative=first(comparative),
+#             size=paste(unique(population_category),collapse='; '))
+# 
+# NAM <- sum(cxc$comparative[grep("NORTH AMERICA",cxc$regions)]==1)/length(grep("NORTH AMERICA",cxc$regions))
+# AFR <- sum(cxc$comparative[grep("AFRICA",cxc$regions)]==1)/length(grep("AFRICA",cxc$regions))
+# EUR <- sum(cxc$comparative[grep("EUROPE",cxc$regions)]==1)/length(grep("EUROPE",cxc$regions))
+# ASI <- sum(cxc$comparative[grep("ASIA",cxc$regions)]==1)/length(grep("ASIA",cxc$regions))
+# LAM <- sum(cxc$comparative[grep("LATIN AMERICA",cxc$regions)]==1)/length(grep("LATIN AMERICA",cxc$regions))
+# 
+# mega <- sum(cxc$comparative[grep("10000000,100000000",cxc$size)]==1)/length(grep("10000000,100000000",cxc$size))
+# big <- sum(cxc$comparative[grep("1000000,10000000",cxc$size)]==1)/length(grep("1000000,10000000",cxc$size))
+# medium <- sum(cxc$comparative[grep("300000,1000000",cxc$size)]==1)/length(grep("300000,1000000",cxc$size))
+# small <- sum(cxc$comparative[grep("0,300000",cxc$size)]==1)/length(grep("0,300000",cxc$size))
 
 names <- sort(unique(blarg$UN6))
 comp <- matrix(data=0,nrow=length(names),ncol=length(names),dimnames=list(names,names))
@@ -362,7 +363,9 @@ comp <- matrix(data=0,nrow=length(names),ncol=length(names),dimnames=list(names,
 blarg <- blarg %>%
   filter(is.na(UN6)==FALSE) %>%
   group_by(title,abstract) %>%
-  summarise(regions=paste(UN6,collapse=";"),cities=paste(geo_city,collapse=";"),n=n())
+  summarise(regions=paste(UN6,collapse=";"),cities=paste(geo_city,collapse=";"),n=n()) %>%
+  arrange(desc(n))
+
 
 for (i in 1:length(blarg$title)) {
 
@@ -381,11 +384,20 @@ for (i in 1:length(blarg$title)) {
     }
   }
 }
+
+
+
 ```
 
 ```{r echo=FALSE,warning=FALSE, rows.print=4, fig.width=8, fig.height=8}
 library(chorddiag)
 chorddiag(comp)
+
+#cxc <- cxc %>%
+ # group_by(regions) %>%
+  #summarise(n=sum(n()))
+
+
 ```
 
 # Topics by city and region
@@ -437,8 +449,7 @@ cities <- blarg %>%
   mutate(topic_score=sum(value)) %>%
   group_by(geo_city,topic) %>%
   summarise(value=sum(value)/first(topic_score),n=n()) %>%
-  arrange(desc(n)) %>%
-  filter(n>23)
+  arrange(desc(n))
 
 cities2 <- blarg %>%
   group_by(topic) %>%
@@ -447,10 +458,7 @@ cities2 <- blarg %>%
   mutate(topic_score=sum(value)) %>%
   group_by(geo_city,topic) %>%
   summarise(value=log((sum(value)/first(topic_score))/first(global_topic_dist)),n=n()) %>%
-  arrange(desc(n)) %>%
-  filter(n>23)
-
-
+  arrange(desc(n))
 
 
 z <- cities %>%
@@ -482,19 +490,19 @@ regions2 %>%
   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
   ggtitle("Summed topics, normalised by region and global distribution")
 
-cities <- cities %>%
-  group_by(topic) %>%
-  mutate(topic_average=mean(value))
-  
-top10 <- sort(unique(cities$topic_average),decreasing=TRUE)[11]
-
-cities %>%
-  filter(topic_average>top10) %>%
-  ggplot(.,aes(city_ordered,topic)) +
-  geom_tile(aes(fill=value),colour="grey50") +
-  #scale_fill_gradient(low='white',high='#005a32',na.value = "grey") +
-  scale_fill_distiller(palette = "Blues",direction=1,na.value = "white") +
-  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
+# cities <- cities %>%
+#   group_by(topic) %>%
+#   mutate(topic_average=mean(value))
+#   
+# top10 <- sort(unique(cities$topic_average),decreasing=TRUE)[11]
+# 
+# cities %>%
+#   filter(topic_average>top10) %>%
+#   ggplot(.,aes(city_ordered,topic)) +
+#   geom_tile(aes(fill=value),colour="grey50") +
+#   #scale_fill_gradient(low='white',high='#005a32',na.value = "grey") +
+#   scale_fill_distiller(palette = "Blues",direction=1,na.value = "white") +
+#   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
 
 # cities2 %>%
 #   ggplot(.,aes(city_ordered,topic)) +
@@ -514,16 +522,27 @@ topic_summary_normalised <- regions2 %>%
   arrange(desc(value)) %>%
   summarise(top_topics = paste0(c(nth(topic,1),nth(topic,2),nth(topic,3)),collapse="; "),low_topics = paste0(c(nth(topic,17),nth(topic,16),nth(topic,15)),collapse="; "))
 
+city_summary_summed <- cities %>%
+  filter(geo_city=="Nairobi" | n>40) %>%
+  group_by(geo_city) %>%
+  arrange(desc(value)) %>%
+  summarise(top_topics=paste0(c(nth(topic,1),nth(topic,2),nth(topic,3)),collapse="; "),low_topics = paste0(c(nth(topic,17),nth(topic,16),nth(topic,15)),collapse="; "))
+
 topic_summary_normalised <- t(topic_summary_normalised)
 topic_summary_summed <- t(topic_summary_summed)
+city_summary_summed <- t(city_summary_summed)
 
 library(knitr)
 library(kableExtra)
-kable(topic_summary_normalised, "html", caption="Normalised above/below average topics",digits=1) %>%
-  kable_styling() 
+# kable(topic_summary_normalised, "html", caption="Normalised above/below average topics",digits=1) %>%
+#   kable_styling() 
 
-kable(topic_summary_summed, "html", caption="Summed top and bottom topics",digits=1) %>%
+kable(topic_summary_summed, "html", caption="Summed top and bottom topics for regions",digits=1) %>%
   kable_styling()
+
+kable(city_summary_summed, "html", caption="Summed top and bottom topics for cities",digits=1) %>%
+  kable_styling()
+
 
 ```
 
@@ -615,12 +634,33 @@ EU <- ctab %>%
 
 ```{r include=FALSE}
 
-## digging
-
-delhi <- ctab %>%
-  filter(geo_city=="Delhi") %>%
-  select(title,year,citations,abstract,authors,doi,`Air pollution`:`Water demand`)
+############## future looking cases ############## 
 
 
+rm(list = ls())
+library(tidyverse)
+load(file = "Data/city_studies.RData")
+
+ctab <- ctab %>%
+  mutate(tags=ifelse(grepl("years",tags) || grepl("scenarios",tags),1,0))
+
+futures_by_region <- ctab %>%
+  group_by(UN6) %>%
+  summarise(n=n(),futures=sum(tags)) %>%
+  mutate(proportion=futures/n)
+
+futures_by_topic <- ctab %>%
+  gather(topic,value,'Air pollution':'Water demand') %>%
+  group_by(topic) %>%
+  mutate(total_value=sum(value)) %>%
+  filter(tags==1) %>%
+  group_by(topic) %>%
+  summarise(total_value=nth(total_value,1),value=sum(value)) %>%
+  mutate(proportion=value/total_value)
+
+
+blarg <- ctab %>%
+  mutate(tags=ifelse(grepl("years",tags) || grepl("scenarios",tags),1,0)) %>%
+  filter(UN6=='AFRICA' & tags==1)
 
 ```

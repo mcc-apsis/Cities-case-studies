@@ -37,14 +37,16 @@ data_UN$City <- tolower(data_UN$City) %>%
   sapply(simpleCap)
 data_UN$Year <- as.numeric(as.character(data_UN$Year))
 
-# take only latest year
+# take only latest year and biggest cities of multiples
 data_UN <- data_UN %>%
   group_by(City,City.type,Country) %>%
   filter(Year==max(Year)) %>%
   ungroup() %>%
   group_by(City,Country) %>%
   filter(Value==max(Value)) %>%
-  filter(row_number()==n())
+  filter(row_number()==n()) %>%
+  group_by(City) %>%
+  filter(Value==max(Value))
 
 # Minor edits to city names
 data_UN$City <- gsub("Washington","Washington, D.C.", data_UN$City)
@@ -114,30 +116,30 @@ data_proj$size <- factor(data_proj$size, levels = levels)
 
 ############### GEONames Database ############### 
 
-rm(list = ls())
-library(tidyverse)
-library(xlsx)
-
-
-data_geo <- read.xlsx(file="Data/cities15000.xlsx",sheetName="Sheet1",encoding="UTF-8",header=TRUE) %>%
-  rename(city=name..............,country=country.code,pop=population........) %>%
-  select(city,country,pop) %>%
-  filter(pop>15000)
-
-regions <- read.xlsx(file="C:\\Users\\lamw\\Google Drive\\Work\\Code\\MATLAB\\Data shop\\Region definitions\\regions.xls",sheetName = "Sheet1") %>%
-  select(ISO.Code,IAM10,UN6)
-regions$UN6 <- gsub("LATIN AMERICA AND THE CARIBBEAN","LATIN AMERICA",regions$UN6)
-regions$UN6 <- gsub("NORTHERN AMERICA","NORTH AMERICA",regions$UN6)
-
-
-isos <- read.xlsx(file="C:\\Users\\lamw\\Google Drive\\Work\\Code\\MATLAB\\Handy code\\ISOcodes.xls",sheetName="3 letter codes",startRow = 3,colIndex=2:3,header=FALSE)
-names(isos) = c("2 letter","3 letter")
-
-data_geo <- left_join(data_geo,isos,by=c("country"="2 letter"))
-data_geo <- left_join(data_geo,regions,by=c("3 letter"="ISO.Code")) %>%
-  select(-country)
-
-save(data_geo,file="Data/geo_data.RData")
+# rm(list = ls())
+# library(tidyverse)
+# library(xlsx)
+# 
+# 
+# data_geo <- read.xlsx(file="Data/cities15000.xlsx",sheetName="Sheet1",encoding="UTF-8",header=TRUE) %>%
+#   rename(city=name..............,country=country.code,pop=population........) %>%
+#   select(city,country,pop) %>%
+#   filter(pop>15000)
+# 
+# regions <- read.xlsx(file="C:\\Users\\lamw\\Google Drive\\Work\\Code\\MATLAB\\Data shop\\Region definitions\\regions.xls",sheetName = "Sheet1") %>%
+#   select(ISO.Code,IAM10,UN6)
+# regions$UN6 <- gsub("LATIN AMERICA AND THE CARIBBEAN","LATIN AMERICA",regions$UN6)
+# regions$UN6 <- gsub("NORTHERN AMERICA","NORTH AMERICA",regions$UN6)
+# 
+# 
+# isos <- read.xlsx(file="C:\\Users\\lamw\\Google Drive\\Work\\Code\\MATLAB\\Handy code\\ISOcodes.xls",sheetName="3 letter codes",startRow = 3,colIndex=2:3,header=FALSE)
+# names(isos) = c("2 letter","3 letter")
+# 
+# data_geo <- left_join(data_geo,isos,by=c("country"="2 letter"))
+# data_geo <- left_join(data_geo,regions,by=c("3 letter"="ISO.Code")) %>%
+#   select(-country)
+# 
+# save(data_geo,file="Data/geo_data.RData")
 
 ############### save ###############
 
