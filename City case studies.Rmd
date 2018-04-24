@@ -523,14 +523,29 @@ topic_summary_normalised <- regions2 %>%
   summarise(top_topics = paste0(c(nth(topic,1),nth(topic,2),nth(topic,3)),collapse="; "),low_topics = paste0(c(nth(topic,17),nth(topic,16),nth(topic,15)),collapse="; "))
 
 city_summary_summed <- cities %>%
-  filter(geo_city=="Nairobi" | n>40) %>%
+  filter(n>40) %>%
   group_by(geo_city) %>%
   arrange(desc(value)) %>%
-  summarise(top_topics=paste0(c(nth(topic,1),nth(topic,2),nth(topic,3)),collapse="; "),low_topics = paste0(c(nth(topic,17),nth(topic,16),nth(topic,15)),collapse="; "))
+  summarise(n=first(n),top_topics=paste0(c(nth(topic,1),nth(topic,2),nth(topic,3)),collapse="; "),low_topics = paste0(c(nth(topic,17),nth(topic,16),nth(topic,15)),collapse="; ")) %>%
+  arrange(desc(n))
+
+africa_cities <- ctab %>%
+  filter(geo_city=="Cairo") %>%
+  gather(key="topic",value="value",`Air pollution`:`Water demand`) %>% 
+  group_by(title,abstract) %>% 
+  filter(value>0.025) %>% 
+  mutate(topics=paste0(topic,collapse="; ")) %>% 
+  summarise(geo_city=first(geo_city),year=first(year),topics=first(topics),authors=first(authors),doi=first(doi)) %>%
+  arrange(desc(year)) %>% 
+  select(title,year,authors,topics,doi)
+  
+library(xlsx)
+
 
 topic_summary_normalised <- t(topic_summary_normalised)
 topic_summary_summed <- t(topic_summary_summed)
 city_summary_summed <- t(city_summary_summed)
+#africa_cities <- t(africa_cities)
 
 library(knitr)
 library(kableExtra)
@@ -543,6 +558,10 @@ kable(topic_summary_summed, "html", caption="Summed top and bottom topics for re
 kable(city_summary_summed, "html", caption="Summed top and bottom topics for cities",digits=1) %>%
   kable_styling()
 
+kable(africa_cities, "html", caption="papers on Cairo",digits=1) %>%
+  kable_styling()
+
+write.xlsx(as.data.frame(africa_cities),file='Writing/cairo.xlsx')
 
 ```
 
