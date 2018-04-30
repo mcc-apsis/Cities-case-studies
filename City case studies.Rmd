@@ -285,13 +285,13 @@ blarg %>%
 
 ####################### Case studies vs. population shares & projections #######################
 
-blarg %>%
-  mutate(ratio=ratio_studies_region/ratio_pop_2030_region) %>%
-  mutate(ratio=ifelse(ratio_studies_region<ratio_pop_2030_region,2-(ratio_pop_2030_region/ratio_studies_region),ratio)) %>% 
-  ggplot(.) +
-  geom_point(aes(x=population_category,y=ratio),stat='identity',colour='blue') +
-  facet_grid(.~ UN6)+
-  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
+# blarg %>%
+#   mutate(ratio=ratio_studies_region/ratio_pop_2030_region) %>%
+#   mutate(ratio=ifelse(ratio_studies_region<ratio_pop_2030_region,2-(ratio_pop_2030_region/ratio_studies_region),ratio)) %>% 
+#   ggplot(.) +
+#   geom_point(aes(x=population_category,y=ratio),stat='identity',colour='blue') +
+#   facet_grid(.~ UN6)+
+#   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
 
 blarg %>%
   mutate(ratio=ratio_studies_global/ratio_pop_2030_global) %>%
@@ -305,6 +305,39 @@ blarg %>%
 #   group_by(UN6) %>% 
 #   summarise(total_cities=sum(geo_cities,na.rm=TRUE),total_study_cities=sum(study_cities,na.rm=TRUE),total_studies=sum(no_studies,na.rm=TRUE))
 
+
+blarg$population_category <- as.factor(blarg$population_category)
+blarg$population_category <- factor(blarg$population_category,levels(blarg$population_category)[c(4,3,1,2)])
+
+data_proj$size <- as.factor(data_proj$size)
+data_proj$size <- factor(data_proj$size,levels(data_proj$size)[c(4,3,1,2)])
+
+
+data_proj %>%
+  #gather(key,value,popUN_2015:popUN_2030) %>%
+  mutate(growth_rate=(popUN_2030/popUN_2015)^(1/15)-1) %>% 
+  ggplot(.) + 
+  #geom_bar(aes(x=key,y=value),stat='identity') + 
+  geom_bar(aes(x=size,y=growth_rate,fill=area),stat='identity') +
+  facet_grid(.~area) +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
+
+data_proj %>% 
+  filter(area=="WORLD") %>% 
+  group_by(area) %>% 
+  mutate(total_2015=sum(popUN_2015),total_2030=sum(popUN_2030)) %>% 
+  ungroup() %>% 
+  mutate(popUN_2015=popUN_2015/total_2015,popUN_2030=popUN_2030/total_2030) %>% 
+  gather(key,value,popUN_2015:popUN_2030) %>% 
+  ggplot(.) +
+  geom_bar(aes(x=key,y=value,fill=size),stat='identity',position=position_stack(reverse = TRUE))
+
+data_proj %>% 
+  filter(area!="WORLD") %>% 
+  ggplot(.) +
+  geom_bar(aes(x=size,y=popUN_2015,fill=area),stat='identity') +
+  facet_grid(.~area) +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
 
 
 
@@ -341,6 +374,12 @@ ctab$population_category <- cut(ctab$geo_pop,breaks = c(100e6,10e6,1e6,3e5,0),di
 blarg <- ctab %>%
   filter(comparative==1)
 
+blarg <- blarg %>% 
+  filter(is.na(UN6)==FALSE) %>% 
+  group_by(title,abstract) %>% 
+  summarise(z=ifelse(length(unique(UN6))>1,1,0),regions=paste(UN6,collapse=";")) %>% 
+  filter(z!=0)
+
 # cxc <- ctab %>%
 #   group_by(title,abstract) %>%
 #   summarise(regions=paste(unique(UN6),collapse=";"),cities=paste(unique(geo_city),collapse=";"),comparative=first(comparative),
@@ -364,7 +403,10 @@ blarg <- blarg %>%
   filter(is.na(UN6)==FALSE) %>%
   group_by(title,abstract) %>%
   summarise(regions=paste(UN6,collapse=";"),cities=paste(geo_city,collapse=";"),n=n()) %>%
-  arrange(desc(n))
+  arrange(desc(n)) %>%
+  filter(n!=1)
+
+
 
 
 for (i in 1:length(blarg$title)) {
@@ -385,18 +427,31 @@ for (i in 1:length(blarg$title)) {
   }
 }
 
+ratio_comp <- comp
 
+for (i in 1:length(ratio_comp[1,])) {
+  
+  ratio_comp[i,] <- ratio_comp[i,]/sum(ratio_comp[i,])
+  
+}
 
 ```
 
-```{r echo=FALSE,warning=FALSE, rows.print=4, fig.width=8, fig.height=8}
+```{r comparative_Studies, echo=FALSE,warning=FALSE, rows.print=4, fig.path="Plots/",dev=c('png','pdf')}
 library(chorddiag)
 chorddiag(comp)
+#chorddiag(ratio_comp)
 
 #cxc <- cxc %>%
  # group_by(regions) %>%
   #summarise(n=sum(n()))
 
+blarg %>%
+  rename(city_count=n) %>% 
+  group_by(city_count) %>% 
+  summarise(study_count=n()) %>%  
+  ggplot(.,aes(x=city_count,y=study_count)) +
+  geom_bar(stat='identity')
 
 ```
 
