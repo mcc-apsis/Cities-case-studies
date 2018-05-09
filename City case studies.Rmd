@@ -348,110 +348,110 @@ data_proj %>%
 <br>
 
 ```{r include=FALSE}
-
-rm(list = ls())
-library(tidyverse)
-library(svglite)
-
-load(file = "Data/city_studies.RData")
-load(file = "Data/city_data.RData")
-
-
-## use agglomeration data if we have it
-ctab <- left_join(ctab,data_UN, by = c("geo_city" = "City")) %>%
-  select(-c(Year,Country,Record.Type,Reliability,Value.Footnotes))
-
-ctab <- ctab %>%
-  mutate(geo_pop=ifelse(UN_type=="Urban agglomeration" & is.na(UN_type)==FALSE,UN_pop,geo_pop))
-
-ctab <- ctab %>%
-  group_by(title) %>%
-  mutate(comparative = ifelse(n()>1,1,0)) %>%
-  select(geo_city:year,comparative,everything()) 
-
-ctab$population_category <- cut(ctab$geo_pop,breaks = c(100e6,10e6,1e6,3e5,0),dig.lab=10,include.lowest=TRUE)
-
-blarg <- ctab %>%
-  filter(comparative==1)
-
-blarg <- blarg %>% 
-  filter(is.na(UN6)==FALSE) %>% 
-  group_by(title,abstract) %>% 
-  summarise(z=ifelse(length(unique(UN6))>1,1,0),regions=paste(UN6,collapse=";")) %>% 
-  filter(z!=0)
-
-# cxc <- ctab %>%
+# 
+# rm(list = ls())
+# library(tidyverse)
+# library(svglite)
+# 
+# load(file = "Data/city_studies.RData")
+# load(file = "Data/city_data.RData")
+# 
+# 
+# ## use agglomeration data if we have it
+# ctab <- left_join(ctab,data_UN, by = c("geo_city" = "City")) %>%
+#   select(-c(Year,Country,Record.Type,Reliability,Value.Footnotes))
+# 
+# ctab <- ctab %>%
+#   mutate(geo_pop=ifelse(UN_type=="Urban agglomeration" & is.na(UN_type)==FALSE,UN_pop,geo_pop))
+# 
+# ctab <- ctab %>%
+#   group_by(title) %>%
+#   mutate(comparative = ifelse(n()>1,1,0)) %>%
+#   select(geo_city:year,comparative,everything()) 
+# 
+# ctab$population_category <- cut(ctab$geo_pop,breaks = c(100e6,10e6,1e6,3e5,0),dig.lab=10,include.lowest=TRUE)
+# 
+# blarg <- ctab %>%
+#   filter(comparative==1)
+# 
+# blarg <- blarg %>% 
+#   filter(is.na(UN6)==FALSE) %>% 
+#   group_by(title,abstract) %>% 
+#   summarise(z=ifelse(length(unique(UN6))>1,1,0),regions=paste(UN6,collapse=";")) %>% 
+#   filter(z!=0)
+# 
+# # cxc <- ctab %>%
+# #   group_by(title,abstract) %>%
+# #   summarise(regions=paste(unique(UN6),collapse=";"),cities=paste(unique(geo_city),collapse=";"),comparative=first(comparative),
+# #             size=paste(unique(population_category),collapse='; '))
+# # 
+# # NAM <- sum(cxc$comparative[grep("NORTH AMERICA",cxc$regions)]==1)/length(grep("NORTH AMERICA",cxc$regions))
+# # AFR <- sum(cxc$comparative[grep("AFRICA",cxc$regions)]==1)/length(grep("AFRICA",cxc$regions))
+# # EUR <- sum(cxc$comparative[grep("EUROPE",cxc$regions)]==1)/length(grep("EUROPE",cxc$regions))
+# # ASI <- sum(cxc$comparative[grep("ASIA",cxc$regions)]==1)/length(grep("ASIA",cxc$regions))
+# # LAM <- sum(cxc$comparative[grep("LATIN AMERICA",cxc$regions)]==1)/length(grep("LATIN AMERICA",cxc$regions))
+# # 
+# # mega <- sum(cxc$comparative[grep("10000000,100000000",cxc$size)]==1)/length(grep("10000000,100000000",cxc$size))
+# # big <- sum(cxc$comparative[grep("1000000,10000000",cxc$size)]==1)/length(grep("1000000,10000000",cxc$size))
+# # medium <- sum(cxc$comparative[grep("300000,1000000",cxc$size)]==1)/length(grep("300000,1000000",cxc$size))
+# # small <- sum(cxc$comparative[grep("0,300000",cxc$size)]==1)/length(grep("0,300000",cxc$size))
+# 
+# names <- sort(unique(blarg$UN6))
+# comp <- matrix(data=0,nrow=length(names),ncol=length(names),dimnames=list(names,names))
+# 
+# blarg <- blarg %>%
+#   filter(is.na(UN6)==FALSE) %>%
 #   group_by(title,abstract) %>%
-#   summarise(regions=paste(unique(UN6),collapse=";"),cities=paste(unique(geo_city),collapse=";"),comparative=first(comparative),
-#             size=paste(unique(population_category),collapse='; '))
+#   summarise(regions=paste(UN6,collapse=";"),cities=paste(geo_city,collapse=";"),n=n()) %>%
+#   arrange(desc(n)) %>%
+#   filter(n!=1)
 # 
-# NAM <- sum(cxc$comparative[grep("NORTH AMERICA",cxc$regions)]==1)/length(grep("NORTH AMERICA",cxc$regions))
-# AFR <- sum(cxc$comparative[grep("AFRICA",cxc$regions)]==1)/length(grep("AFRICA",cxc$regions))
-# EUR <- sum(cxc$comparative[grep("EUROPE",cxc$regions)]==1)/length(grep("EUROPE",cxc$regions))
-# ASI <- sum(cxc$comparative[grep("ASIA",cxc$regions)]==1)/length(grep("ASIA",cxc$regions))
-# LAM <- sum(cxc$comparative[grep("LATIN AMERICA",cxc$regions)]==1)/length(grep("LATIN AMERICA",cxc$regions))
 # 
-# mega <- sum(cxc$comparative[grep("10000000,100000000",cxc$size)]==1)/length(grep("10000000,100000000",cxc$size))
-# big <- sum(cxc$comparative[grep("1000000,10000000",cxc$size)]==1)/length(grep("1000000,10000000",cxc$size))
-# medium <- sum(cxc$comparative[grep("300000,1000000",cxc$size)]==1)/length(grep("300000,1000000",cxc$size))
-# small <- sum(cxc$comparative[grep("0,300000",cxc$size)]==1)/length(grep("0,300000",cxc$size))
-
-names <- sort(unique(blarg$UN6))
-comp <- matrix(data=0,nrow=length(names),ncol=length(names),dimnames=list(names,names))
-
-blarg <- blarg %>%
-  filter(is.na(UN6)==FALSE) %>%
-  group_by(title,abstract) %>%
-  summarise(regions=paste(UN6,collapse=";"),cities=paste(geo_city,collapse=";"),n=n()) %>%
-  arrange(desc(n)) %>%
-  filter(n!=1)
-
-
-
-
-for (i in 1:length(blarg$title)) {
-
-  temp_regs <- strsplit(blarg$regions[i],';')
-
-
-  if (length(temp_regs[[1]])>1) {
-
-    combos <- combn(temp_regs[[1]],2)
-
-    for (j in 1:length(combos[1,])) {
-
-      comp[combos[1,j],combos[2,j]] <- comp[combos[1,j],combos[2,j]] + 1
-      comp[combos[2,j],combos[1,j]] <- comp[combos[2,j],combos[1,j]] + 1
-
-    }
-  }
-}
-
-ratio_comp <- comp
-
-for (i in 1:length(ratio_comp[1,])) {
-  
-  ratio_comp[i,] <- ratio_comp[i,]/sum(ratio_comp[i,])
-  
-}
+# 
+# 
+# for (i in 1:length(blarg$title)) {
+# 
+#   temp_regs <- strsplit(blarg$regions[i],';')
+# 
+# 
+#   if (length(temp_regs[[1]])>1) {
+# 
+#     combos <- combn(temp_regs[[1]],2)
+# 
+#     for (j in 1:length(combos[1,])) {
+# 
+#       comp[combos[1,j],combos[2,j]] <- comp[combos[1,j],combos[2,j]] + 1
+#       comp[combos[2,j],combos[1,j]] <- comp[combos[2,j],combos[1,j]] + 1
+# 
+#     }
+#   }
+# }
+# 
+# ratio_comp <- comp
+# 
+# for (i in 1:length(ratio_comp[1,])) {
+#   
+#   ratio_comp[i,] <- ratio_comp[i,]/sum(ratio_comp[i,])
+#   
+# }
 
 ```
 
 ```{r comparative_Studies, echo=FALSE,warning=FALSE, rows.print=4, fig.path="Plots/",dev=c('png','pdf')}
-library(chorddiag)
-chorddiag(comp)
-#chorddiag(ratio_comp)
-
-#cxc <- cxc %>%
- # group_by(regions) %>%
-  #summarise(n=sum(n()))
-
-blarg %>%
-  rename(city_count=n) %>% 
-  group_by(city_count) %>% 
-  summarise(study_count=n()) %>%  
-  ggplot(.,aes(x=city_count,y=study_count)) +
-  geom_bar(stat='identity')
+# library(chorddiag)
+# chorddiag(comp)
+# #chorddiag(ratio_comp)
+# 
+# #cxc <- cxc %>%
+#  # group_by(regions) %>%
+#   #summarise(n=sum(n()))
+# 
+# blarg %>%
+#   rename(city_count=n) %>% 
+#   group_by(city_count) %>% 
+#   summarise(study_count=n()) %>%  
+#   ggplot(.,aes(x=city_count,y=study_count)) +
+#   geom_bar(stat='identity')
 
 ```
 
@@ -685,7 +685,7 @@ ggplot() +
 
 ```{r include=FALSE}
 
-########## deep diving
+############## deep diving ############## 
 
 rm(list = ls())
 library(tidyverse)
@@ -736,5 +736,116 @@ futures_by_topic <- ctab %>%
 blarg <- ctab %>%
   mutate(tags=ifelse(grepl("years",tags) || grepl("scenarios",tags),1,0)) %>%
   filter(UN6=='AFRICA' & tags==1)
+
+```
+
+
+# Typology linking
+
+
+``` {r include=FALSE}
+
+############## typology ############## 
+
+
+
+rm(list = ls())
+library(tidyverse)
+library(xlsx)
+load(file = "Data/city_studies.RData")
+load(file = "Data/geo_data.RData")
+
+city_list <- read.xlsx(file = "Data/city typology.xlsx",sheetName = "Sheet1",header=FALSE,encoding="UTF-8")
+
+typology <- data.frame(City=as.character(),cluster=integer())
+
+for (i in 1:length(city_list[,1])) {
+  temp <- strsplit(as.character(city_list[i,2]),split=",")
+  for (j in 1:length(temp[[1]])) {
+    
+    typology <- add_row(typology,City=temp[[1]][j],cluster=city_list[i,1])
+    
+  }
+}
+
+typology$City <- textclean::replace_non_ascii(typology$City)
+
+
+### normalise city names
+
+data_geo <- data_geo %>% 
+  filter(featurecode!="PPLX") %>% 
+  mutate(alternatenames=as.character(alternatenames))
+
+
+####### add new manual exceptions
+
+data_geo$alternatenames[grep("Urumqi",data_geo$alternatenames)] <- paste0("Wulumqi,",data_geo$alternatenames[grep("Urumqi",data_geo$alternatenames)])
+
+data_geo$alternatenames[grep("Harbin",data_geo$alternatenames)] <- paste0("Haerbin,",data_geo$alternatenames[grep("Harbin",data_geo$alternatenames)])
+
+data_geo$alternatenames[grep("Hong Kong",data_geo$alternatenames)] <- paste0("HongKong,",data_geo$alternatenames[grep("Hong Kong",data_geo$alternatenames)])
+
+data_geo$alternatenames[grep("Rio de Janeiro",data_geo$alternatenames)] <- paste0("Rio de Janiero,",data_geo$alternatenames[grep("Rio de Janeiro",data_geo$alternatenames)])
+
+data_geo$alternatenames[grep("Stockholm",data_geo$city)] <- paste0("Stockholm county,",data_geo$alternatenames[grep("Stockholm",data_geo$city)])
+
+data_geo$alternatenames[grep("Gävle",data_geo$city)] <- paste0("Gavle,",data_geo$alternatenames[grep("Gävle",data_geo$city)])
+
+data_geo$alternatenames[grep("Buffalo City",data_geo$alternatenames)] <- ""
+
+data_geo$alternatenames[grep(5110629,data_geo$geonameid)] <- paste0("Buffalo City,",data_geo$alternatenames[grep(5110629,data_geo$geonameid)])
+
+
+data_geo$alternatenames[grep(3882428,data_geo$geonameid)] <- ""
+
+#######
+
+typology <- typology %>% 
+  mutate(City=as.character(City)) %>% 
+  rowwise() %>% 
+  mutate(standardname=ifelse(any(grepl(City,data_geo$alternatenames))==FALSE,NA,as.character(data_geo$city[grep(paste0("(,|^)\\<",City,"\\>(,|$)"),data_geo$alternatenames)]))) 
+
+
+typology <- typology %>% 
+  rowwise() %>% 
+  mutate(City=ifelse(is.na(standardname)==FALSE,standardname,City))
+
+
+###
+blarg <- left_join(ctab,typology,by=c("geo_city"="City")) %>% 
+  filter(!is.na(cluster)) %>% 
+  group_by(cluster) %>% 
+  mutate(total_studies=n(),unique_cities=length(unique(geo_city)),cities=paste0(unique(geo_city),collapse="; "))
+
+blarg <- gather(blarg,topic,value,"Air pollution":"Water demand") %>% 
+  group_by(cluster,topic) %>% 
+  summarise(value=sum(value),total_studies=first(total_studies),unique_cities=first(unique_cities),cities=first(cities)) %>% 
+  group_by(cluster) %>% 
+  arrange(desc(value)) %>% 
+  summarise(no_studies=first(total_studies),unique_cities=first(unique_cities),cities=first(cities),top_topics = paste0(c(nth(topic,1),nth(topic,2),nth(topic,3)),collapse="; "),low_topics = paste0(c(nth(topic,17),nth(topic,16),nth(topic,15)),collapse="; "))
+
+
+### match failed cases
+typology <- typology %>% 
+  mutate(standardname=ifelse(is.na(standardname)==TRUE,"No known city","No documents"))
+fails <- anti_join(typology,ctab,by=c("City"="geo_city"))
+
+```
+
+``` {r echo=FALSE,warning=FALSE}
+
+
+library(knitr)
+library(kableExtra)
+kable(blarg, "html", caption="Typology clusters, documents and topics",digits=1) %>%
+  kable_styling() %>%
+  scroll_box(height = "500px")
+
+kable(fails,"html", caption="Typology cities without matches",digits=1) %>%
+  kable_styling() %>%
+  scroll_box(height = "200px")
+
+
 
 ```
