@@ -818,13 +818,7 @@ blarg <- left_join(ctab,typology,by=c("geo_city"="City")) %>%
   group_by(cluster) %>% 
   mutate(total_studies=n(),unique_cities=length(unique(geo_city)),cities=paste0(unique(geo_city),collapse="; "))
 
-blarg <- gather(blarg,topic,value,"Air pollution":"Water demand") %>% 
-  group_by(cluster,topic) %>% 
-  summarise(value=sum(value),total_studies=first(total_studies),unique_cities=first(unique_cities),cities=first(cities)) %>% 
-  group_by(cluster) %>% 
-  arrange(desc(value)) %>% 
-  summarise(no_studies=first(total_studies),unique_cities=first(unique_cities),cities=first(cities),top_topics = paste0(c(nth(topic,1),nth(topic,2),nth(topic,3)),collapse="; "),low_topics = paste0(c(nth(topic,17),nth(topic,16),nth(topic,15)),collapse="; "))
-
+blarg <- gather(blarg,topic,value,"Air pollution":"Water demand") 
 
 ### match failed cases
 typology <- typology %>% 
@@ -833,14 +827,53 @@ fails <- anti_join(typology,ctab,by=c("City"="geo_city"))
 
 ```
 
-``` {r echo=FALSE,warning=FALSE}
+``` {r typology_topics,echo=FALSE,warning=FALSE,fig.width=8,fig.height=6,fig.path="Plots/",dev=c('png','pdf')}
+
+blarg %>% 
+  group_by(cluster) %>% 
+  mutate(total_score=sum(value)) %>% 
+  ungroup() %>% 
+  group_by(cluster,topic) %>% 
+  summarise(value=sum(value)/first(total_score)) %>% 
+  ggplot(.,aes(cluster,topic)) +
+  geom_tile(aes(fill=value),colour="grey50") +
+  scale_fill_distiller(palette = "YlGnBu",direction=1,na.value = "white") +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
+  ggtitle("Summed topics, normalised by cluster") +
+  scale_x_continuous(breaks = scales::pretty_breaks(n = 8))
+
+# global_topic_score = sum(blarg$value)
+# 
+# blarg %>% 
+#   group_by(topic) %>% 
+#   mutate(global_topic_dist=sum(value)/global_topic_score) %>% 
+#   group_by(cluster) %>% 
+#   mutate(total_score=sum(value)) %>% 
+#   ungroup() %>% 
+#   group_by(cluster,topic) %>% 
+#   summarise(value=log((sum(value)/first(total_score))/first(global_topic_dist)))%>% 
+#   ggplot(.,aes(cluster,topic)) +
+#   geom_tile(aes(fill=value),colour="grey50") +
+#   scale_fill_distiller(palette = "YlGnBu",direction=1,na.value = "white") +
+#   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
+#   ggtitle("Summed topics, normalised by global topic distribution") +
+#   scale_x_continuous(breaks = scales::pretty_breaks(n = 8))
+
+
+summary <- blarg %>% 
+  group_by(cluster,topic) %>% 
+  summarise(value=sum(value),total_studies=first(total_studies),unique_cities=first(unique_cities),cities=first(cities)) %>% 
+  group_by(cluster) %>% 
+  arrange(desc(value)) %>% 
+  summarise(no_studies=first(total_studies),unique_cities=first(unique_cities),cities=first(cities),top_topics = paste0(c(nth(topic,1),nth(topic,2),nth(topic,3)),collapse="; "),low_topics = paste0(c(nth(topic,17),nth(topic,16),nth(topic,15)),collapse="; "))
 
 
 library(knitr)
 library(kableExtra)
-kable(blarg, "html", caption="Typology clusters, documents and topics",digits=1) %>%
+kable(summary, "html", caption="Typology clusters, documents and topics",digits=1) %>%
   kable_styling() %>%
   scroll_box(height = "500px")
+
 
 kable(fails,"html", caption="Typology cities without matches",digits=1) %>%
   kable_styling() %>%
