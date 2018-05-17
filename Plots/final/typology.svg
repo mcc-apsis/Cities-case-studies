@@ -298,8 +298,8 @@
      inkscape:pageopacity="1"
      inkscape:pageshadow="2"
      inkscape:zoom="0.70710678"
-     inkscape:cx="972.32797"
-     inkscape:cy="257.92513"
+     inkscape:cx="581.41275"
+     inkscape:cy="826.17542"
      inkscape:document-units="px"
      inkscape:current-layer="layer2"
      showgrid="false"
@@ -320,7 +320,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -1465,7 +1465,7 @@
          y="647.83044">18</tspan></text>
     <path
        style="fill:none;fill-rule:evenodd;stroke:#686868;stroke-width:1.50000012;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:6.00000004, 6.00000004;stroke-dashoffset:1.35000002;stroke-opacity:0.65868267"
-       d="m 468.13114,592.94095 0,173.88212"
+       d="m 468.13114,592.94095 0,147.01206"
        id="path11115-4"
        inkscape:connector-curvature="0" />
     <flowRoot
@@ -1804,7 +1804,7 @@
          y="647.83044">617</tspan></text>
     <path
        style="fill:none;fill-rule:evenodd;stroke:#686868;stroke-width:1.50000012;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:6.00000004, 6.00000004;stroke-dashoffset:1.35000002;stroke-opacity:0.65868267"
-       d="m 674.71404,592.94095 0,173.88212"
+       d="m 674.71404,592.94095 0,147.01206"
        id="path11115-57"
        inkscape:connector-curvature="0" />
     <flowRoot
@@ -2148,7 +2148,7 @@
          y="647.83044">783</tspan></text>
     <path
        style="fill:none;fill-rule:evenodd;stroke:#686868;stroke-width:1.50000012;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:6.00000004, 6.00000004;stroke-dashoffset:1.35000002;stroke-opacity:0.65868267"
-       d="m 880.29689,592.94095 0,173.88212"
+       d="m 880.29689,592.94095 0,147.01206"
        id="path11115-2"
        inkscape:connector-curvature="0" />
     <flowRoot
@@ -2400,7 +2400,7 @@
          y="647.83044">65</tspan></text>
     <path
        style="fill:none;fill-rule:evenodd;stroke:#686868;stroke-width:1.50000012;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:6.00000004, 6.00000004;stroke-dashoffset:1.35000002;stroke-opacity:0.65868267"
-       d="m 261.54827,592.94095 0,173.45774"
+       d="m 261.54827,592.94095 0,146.65326"
        id="path11115"
        inkscape:connector-curvature="0" />
     <flowRoot
