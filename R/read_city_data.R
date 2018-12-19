@@ -97,10 +97,10 @@ data_income <- data_income %>%
 
 ############### UN Urban Projection Data ###############
 
-data_proj <- read.xlsx(file="Data/WUP2014-F17a-City_Size_Class.xls",sheetName="DATA",encoding="UTF-8",startRow=17,header=TRUE)
+data_proj <- read.xlsx(file="Data/WUP2018-F17a-City_Size_Class.xls",sheetName="Data",encoding="UTF-8",startRow=17,header=TRUE)
 
 data_proj <- data_proj %>%
-  rename(area='Major.area..region..country.or.area',size="Size.class.of.urban.settlement",size_code="Size.class.code",type="Type.of.data") %>%
+  rename(area='Region..subregion..country.or.area..',size="Size.class.of.urban.settlement",size_code="Size.class.code",type="Type.of.data") %>%
   select(-c(Index,Country.Code))
 
 names(data_proj) <- gsub("X","",names(data_proj))
@@ -127,7 +127,6 @@ names(data_geo) <- gsub(names(data_geo),pattern="\\.",replacement="")
 data_geo <- data_geo %>% 
   rename(city=name,country=countrycode,pop=population) %>% 
   filter(pop>15000) 
-
 
 
 regions <- read.xlsx(file="C:\\Users\\lamw\\Google Drive\\Work\\Code\\MATLAB\\Data shop\\Region definitions\\regions.xls",sheetName = "Sheet1") %>%

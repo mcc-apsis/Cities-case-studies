@@ -4,7 +4,7 @@ library(svglite)
 library(xlsx)
 
 ctab <-
-  read.csv("Data/cities_places_topics_v2.csv",sep=",",header=TRUE, encoding="UTF-8") %>%
+  read.csv("Data/cities_places_topics_v3.csv",sep=",",header=TRUE, encoding="UTF-8") %>%
   subset(select=-c(X)) %>%
   select(cities,countries,year,title,abstract,doi,authors,everything()) %>%
   rename(geo_city=cities,geo_country=countries,geo_pop=population)
@@ -16,7 +16,8 @@ ctab <- ctab %>%
   filter(!grepl("Conference",title)) %>%
   filter(!grepl("conference",title)) %>%
   filter(!grepl("Proceedings",title)) %>%
-  filter(!grepl("proceedings",title))
+  filter(!grepl("proceedings",title)) %>% 
+  filter(!grepl("proceedings",abstract))
 
 ############### duplicate rows where there is more than one city ###############
 
@@ -60,10 +61,9 @@ ctab <- ctab %>%
   mutate(geo_country=ifelse(grepl("Newcastle upon Tyne",abstract) & geo_city=="Newcastle","GBR",geo_country)) %>%
   mutate(geo_country=ifelse(grepl("Australia",abstract) & geo_city=="Newcastle","AUS",geo_country))
 
-
 ############### Attach topics names ###############
 
-topic_names <- read.xlsx(file="C:\\Users\\lamw\\Google Drive\\Work\\Publications\\Cities case studies\\Data\\topic names.xlsx",sheetIndex = "Run 733") %>%
+topic_names <- read.xlsx(file="Data/topic names update.xlsx",sheetIndex = "topic_table") %>%
   arrange(Stemmed.Keywords)
 
 ctab <- setNames(ctab,c(names(ctab)[1:12],as.character(topic_names$Topic.Name)))
@@ -99,6 +99,18 @@ ctop <- ctab %>%
 save(ctab,file="Data/city_studies.RData")
 
 
+############### export for submission ###############
+rm(list = ls())
+library(tidyverse)
+library(svglite)
+library(xlsx)
+
+load("Data/city_studies.RData")
+ctab <- ctab %>% 
+  select(-IAM10,-tags,-geo_pop)
+
+
+write.xlsx(as.data.frame(ctab),file='Writing/cases.xlsx')
 
 ############### Summary figures ############### 
 
