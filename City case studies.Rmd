@@ -249,6 +249,7 @@ blarg %>%
   ggtitle("proportion of studies relative to urban inhabitats in each city size, by region (arrow going up = overrepresented)")
 
 
+
 ####################### average citations by region / city size #######################
 
 blarg %>%
@@ -280,6 +281,14 @@ blarg %>%
   geom_bar(stat='identity') +
   facet_grid(reformulate(region)) +
   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
+
+blarg %>% 
+  filter(!population_category=='[1,300000]') %>% 
+  ggplot(.,aes(x=UN6,y=study_cities/`Number of agglomerations_2015`,fill=population_category)) + 
+  guides(fill=FALSE) +
+  geom_bar(stat='identity') +
+  facet_grid(.~population_category)
+
 
 
 
@@ -316,8 +325,15 @@ data_proj %>%
   facet_grid(.~area) +
   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
 
-
-
+zz<- blarg %>%
+  group_by(UN6) %>% 
+  summarise(total_studies = sum(no_studies,na.rm=TRUE),total_pop=sum(Population_2015,na.rm=TRUE)) %>% 
+  mutate(fraction_studies=total_studies/5570,fraction_pop=total_pop/3957285013) %>% 
+  gather(key,value,fraction_studies:fraction_pop) %>% 
+  filter(!UN6 =="WORLD")
+zz %>% 
+  ggplot(.)+
+  geom_bar(aes(x=UN6,y=value,fill=key),stat='identity',width=.5, position = "dodge")
 
 ```
 
@@ -513,7 +529,23 @@ cities_topic_count %>%
   scale_fill_distiller(palette = "YlGnBu",direction=1,na.value = "grey") +
   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) + 
   guides(fill=FALSE) 
-  
+
+# random sample #
+
+zz <- ungroup(cities_topic_count) %>% 
+  filter(total_docs>30) %>% 
+  sample_n(10)
+
+zz %>% 
+  gather(topic,value,"Buildings":"Water_demand") %>% 
+  mutate(value=ifelse(value==0,NA,value)) %>% 
+  ggplot(.,aes(ordered,topic)) +
+  geom_tile(aes(fill=value/total_docs),colour="grey50") +
+  geom_text(aes(label = round(value, 1))) +
+  scale_fill_distiller(palette = "YlGnBu",direction=1,na.value = "grey") +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) + 
+  guides(fill=FALSE) 
+
 
 library(xlsx)
 
@@ -557,12 +589,12 @@ load(file = "Data/city_studies.RData")
 
 ####################  get world map together ####################  
 
-regions <- read.xlsx(file="C:\\Users\\lamw\\Google Drive\\Work\\Code\\MATLAB\\Data shop\\Region definitions\\regions.xls",sheetName = "Sheet1") %>%
+regions <- read.xlsx(file="C:\\Users\\lamw\\Documents\\SpiderOak Hive\\Work\\Code\\MATLAB\\Data shop\\Region definitions\\regions.xls",sheetName = "Sheet1") %>%
   select(ISO.Code,IAM10,UN6)
 regions$UN6 <- gsub("LATIN AMERICA AND THE CARIBBEAN","LATIN AMERICA",regions$UN6)
 regions$UN6 <- gsub("NORTHERN AMERICA","NORTH AMERICA",regions$UN6)
 
-isos <- read.xlsx(file="C:\\Users\\lamw\\Google Drive\\Work\\Code\\MATLAB\\Handy code\\ISOcodes.xls",sheetName="3 letter codes",startRow = 3,colIndex=7:8,header=FALSE)
+isos <- read.xlsx(file="C:\\Users\\lamw\\Documents\\SpiderOak Hive\\Work\\Code\\MATLAB\\Handy code\\ISOcodes.xls",sheetName="3 letter codes",startRow = 3,colIndex=7:8,header=FALSE)
 names(isos) = c("country","iso")
 isos <- isos %>% mutate(country=tolower(country))
 
